@@ -15,12 +15,24 @@
     windows_subsystem = "windows"
 )]
 
+mod state;
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}!", name)
 }
 
+fn setup_state() -> state::State {
+    state::State::default().init()
+}
+
 fn main() {
+    let state = setup_state();
+
+    println!("  user data dir: {}", state.data_dir.display());
+    println!("user config dir: {}", state.config_dir.display());
+    println!("  database path: {}", state.db_path.display());
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![greet])
         .run(tauri::generate_context!())
