@@ -1,5 +1,6 @@
 <script>
     import Greet from "../lib/Greet.svelte";
+    import Config from "../lib/Config.svelte";
 </script>
 
 <h1>Welcome to SvelteKit</h1>
@@ -7,3 +8,5 @@
   Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation
 </p>
 <Greet/>
+
+<Config/>

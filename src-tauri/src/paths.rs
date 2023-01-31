@@ -13,21 +13,20 @@
 use directories::BaseDirs;
 use std::path::PathBuf;
 
-pub struct State {
+pub struct Paths {
     pub data_dir: PathBuf,
     pub config_dir: PathBuf,
-
     pub db_path: PathBuf,
 }
 
-impl Default for State {
+impl Default for Paths {
     fn default() -> Self {
         let basedirs = BaseDirs::new().expect("unable to obtain base dirs");
         let datadir = basedirs.data_local_dir().join("ghd");
         let confdir = basedirs.config_dir().join("ghd");
         let dbpath = PathBuf::new().join(&datadir).join("ghd.sqlite3");
 
-        State {
+        Paths {
             data_dir: datadir,
             config_dir: confdir,
             db_path: dbpath,
@@ -35,8 +34,8 @@ impl Default for State {
     }
 }
 
-impl State {
-    pub fn init(self: State) -> Self {
+impl Paths {
+    pub async fn init(self: Paths) -> Paths {
         if !self.data_dir.exists() {
             std::fs::create_dir_all(&self.data_dir)
                 .expect("unable to create user data directory.");
@@ -44,10 +43,6 @@ impl State {
         if !self.config_dir.exists() {
             std::fs::create_dir_all(&self.config_dir)
                 .expect("unable to create user config directory.");
-        }
-
-        if !self.db_path.exists() {
-            // init db
         }
 
         self
