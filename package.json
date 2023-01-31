@@ -30,6 +30,8 @@
   },
   "type": "module",
   "dependencies": {
-    "@tauri-apps/api": "^1.2.0"
+    "@tauri-apps/api": "^1.2.0",
+    "bootstrap": "^5.2.3",
+    "sveltestrap": "^5.10.0"
   }
 }
