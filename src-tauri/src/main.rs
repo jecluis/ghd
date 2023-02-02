@@ -15,6 +15,8 @@
     windows_subsystem = "windows"
 )]
 
+use tauri::Manager;
+
 mod config;
 mod db;
 mod paths;
@@ -118,6 +120,19 @@ async fn main() {
             set_api_token,
             get_api_token,
         ])
+        .setup(|app| {
+            let window = app.get_window("main").unwrap();
+            tokio::spawn(async move {
+                let mut n = 1;
+                loop {
+                    println!("background task iteration #{}", n);
+                    window.emit("iteration", n).unwrap();
+                    n += 1;
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                }
+            });
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
