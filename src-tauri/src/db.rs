@@ -12,16 +12,23 @@
 
 use sqlx::{migrate::MigrateDatabase, sqlite::SqliteQueryResult, SqlitePool};
 
+pub mod pr;
+
 pub struct DB {
     pub uri: String,
     pub pool: Option<SqlitePool>,
+    pub prs: pr::DBPR,
 }
 
 impl DB {
     pub fn new(path: &std::path::PathBuf) -> DB {
         let uri = format!("sqlite://{}", path.display());
 
-        DB { uri, pool: None }
+        DB {
+            uri,
+            pool: None,
+            prs: pr::DBPR::default(),
+        }
     }
 
     pub async fn connect(self: &mut Self) {
@@ -46,6 +53,8 @@ impl DB {
                 Err(err) => panic!("{}", err),
             };
         }
+
+        self.prs.setup(&self.uri).await;
 
         self
     }

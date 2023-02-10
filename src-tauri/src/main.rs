@@ -17,8 +17,11 @@
 
 use tauri::Manager;
 
+mod bg;
 mod config;
 mod db;
+mod gh;
+mod gh_types;
 mod paths;
 
 struct ManagedDB {
@@ -95,6 +98,7 @@ async fn setup_config(db: &db::DB) -> config::Config {
     cfg
 }
 
+
 #[tokio::main]
 async fn main() {
     let paths = setup_paths().await;
@@ -107,11 +111,11 @@ async fn main() {
 
     tauri::async_runtime::set(tokio::runtime::Handle::current());
 
+    let mdb = ManagedDB { db: tokio::sync::Mutex::new(db_handle) };
+
     tauri::Builder::default()
         .manage(paths)
-        .manage(ManagedDB {
-            db: tokio::sync::Mutex::new(db_handle),
-        })
+        .manage(mdb)
         .manage(ManagedConfig {
             config: tokio::sync::Mutex::new(cfg),
         })
@@ -121,15 +125,11 @@ async fn main() {
             get_api_token,
         ])
         .setup(|app| {
-            let window = app.get_window("main").unwrap();
+            let handle = app.app_handle();
+            // let window = app.get_window("main").unwrap();
             tokio::spawn(async move {
-                let mut n = 1;
-                loop {
-                    println!("background task iteration #{}", n);
-                    window.emit("iteration", n).unwrap();
-                    n += 1;
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                }
+                let mut bgtask = bg::BGTask::new();
+                bgtask.run(handle).await;
             });
             Ok(())
         })
