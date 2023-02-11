@@ -1,0 +1,53 @@
+<!--
+Copyright 2023 Joao Eduardo Luis <joao@abysmo.io>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div class="mt-3 mx-3">
+
+  <h4>Settings</h4>
+
+  <p *ngIf="isLoading">Loading...</p>
+
+  <div class="mt-3 card p-3" *ngIf="!isLoading">
+
+    <div class="row">
+      <label for="github-token-input" class="col-2 col-form-label">
+        GitHub API Token
+      </label>
+      <div class="col-8 ">
+        <input class="form-control" id="github-token-input" type="text"
+               placeholder="token" [formControl]="apiTokenFormControl"
+               [class.is-invalid]="isTokenInvalid()"
+               [class.is-valid]="tokenIsValidated && successSettingToken"
+               (input)="changeToken()" />
+        <div class="invalid-feedback" *ngIf="errorSettingToken">
+          Unable to set token
+        </div>
+        <div class="invalid-feedback"
+             *ngIf="apiTokenFormControl.errors?.['badToken']">
+          Wrong GitHub token format
+        </div>
+        <div class="valid-feedback" *ngIf="successSettingToken">
+          Successfully set token
+        </div>
+      </div>
+      <div class="col-2">
+        <button type="submit" class="btn btn-success"
+                [disabled]="!canSaveToken()" (click)="setToken()">Save</button>
+      </div>
+    </div>
+  </div>
+
+</div>
