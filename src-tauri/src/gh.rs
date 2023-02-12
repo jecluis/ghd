@@ -17,23 +17,22 @@ use self::prs::PullRequestEntry;
 pub mod prs;
 
 pub struct Github {
-    token: String,
     client: reqwest::Client,
 }
 
 impl Github {
-    pub fn new(token: &String) -> Self {
+    pub fn new() -> Self {
         Github {
-            token: token.clone(),
             client: reqwest::Client::new(),
         }
     }
 
     pub async fn get_pulls(
         self: &Self,
+        token: &String,
     ) -> Result<Vec<PullRequestEntry>, reqwest::StatusCode> {
         let user = String::from("jecluis");
-        prs::get(&self, &user).await
+        prs::get(&self, token, &user).await
     }
 
     pub fn get(self: &Self, url: &str) -> reqwest::RequestBuilder {
@@ -43,9 +42,10 @@ impl Github {
     pub async fn send(
         self: &Self,
         rb: reqwest::RequestBuilder,
+        token: &String,
     ) -> Result<reqwest::Response, reqwest::StatusCode> {
         let req = rb
-            .bearer_auth(&self.token)
+            .bearer_auth(token)
             .header("User-Agent", "GHD")
             .header("Accept", "application/vnd.github+json")
             .send()

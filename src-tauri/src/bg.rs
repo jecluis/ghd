@@ -12,7 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{gh, ManagedConfig, ManagedDB};
+use crate::{
+    config::Config,
+    db::DB,
+    gh::{self, Github},
+    ManagedState,
+};
 use tauri::Manager;
 
 mod types;
@@ -25,16 +30,12 @@ struct State {
 }
 
 pub struct BGTask {
-    has_token: bool,
-    github: Option<crate::gh::Github>,
     state: State,
 }
 
 impl BGTask {
     pub fn new() -> Self {
         BGTask {
-            has_token: false,
-            github: None,
             state: State {
                 last_pull_update: chrono::DateTime::<chrono::Utc>::MIN_UTC,
                 pull_requests: Vec::new(),
@@ -44,8 +45,11 @@ impl BGTask {
 
     pub async fn run(self: &mut Self, app: tauri::AppHandle) {
         let window = app.get_window("main").unwrap();
-        let dbm = app.try_state::<ManagedDB>().unwrap();
-        let cfg = app.try_state::<ManagedConfig>().unwrap();
+        let mstate = app.try_state::<ManagedState>().unwrap();
+        let state = &mstate.state().await;
+        let db = &state.db;
+        let cfg = &state.config;
+        let gh = &state.gh;
 
         let mut n = 1;
         loop {
@@ -53,26 +57,18 @@ impl BGTask {
             window.emit("iteration", n).unwrap();
             n += 1;
 
-            if !self.has_token {
-                match self.try_get_token(&cfg).await {
-                    Ok(t) => {
-                        println!("token: {}", t);
-                        self.has_token = true;
-                        // setup Github
-                        self.github = Some(gh::Github::new(&t));
-                    }
-                    Err(_) => {
-                        self.sleep_for_a_bit().await;
-                        continue;
-                    }
+            let token = match self.try_get_token(&cfg, &db).await {
+                Ok(t) => {
+                    println!("token: {}", t);
+                    t
                 }
-            }
+                Err(_) => {
+                    self.sleep_for_a_bit().await;
+                    continue;
+                }
+            };
 
-            if self.github.is_none() {
-                panic!("Github should not be none here!");
-            }
-
-            if self.maybe_get_prs().await {
+            if self.maybe_get_prs(&gh, &token).await {
                 self.emit_prs_update(&window);
             }
 
@@ -82,9 +78,10 @@ impl BGTask {
 
     async fn try_get_token(
         self: &Self,
-        mcfg: &ManagedConfig,
+        cfg: &Config,
+        db: &DB,
     ) -> Result<String, ()> {
-        let t = get_token(&mcfg).await;
+        let t = get_token(&cfg, &db).await;
         if !t.is_empty() {
             return Ok(t.clone());
         }
@@ -95,13 +92,17 @@ impl BGTask {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
 
-    async fn maybe_get_prs(self: &mut Self) -> bool {
+    async fn maybe_get_prs(
+        self: &mut Self,
+        gh: &Github,
+        token: &String,
+    ) -> bool {
         if !has_expired(&self.state.last_pull_update, PULL_UPDATE_INTERVAL) {
             return false;
         }
 
         self.state.last_pull_update = chrono::Utc::now();
-        match self.github.as_ref().unwrap().get_pulls().await {
+        match gh.get_pulls(token).await {
             Err(err) => {
                 println!("Error obtaining pull requests: {}", err);
                 match err {
@@ -127,10 +128,10 @@ impl BGTask {
     }
 }
 
-async fn get_token(mcfg: &ManagedConfig) -> String {
-    match &mcfg.config().await.api_token {
-        Some(t) => t.clone(),
-        None => String::default(),
+async fn get_token(cfg: &Config, db: &DB) -> String {
+    match &cfg.get_api_token(&db).await {
+        Ok(t) => t.clone(),
+        Err(_) => String::default(),
     }
 }
 

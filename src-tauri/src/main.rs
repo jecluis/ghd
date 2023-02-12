@@ -25,44 +25,29 @@ mod db;
 mod gh;
 mod gh_types;
 mod paths;
+mod state;
 
-struct ManagedDB {
-    db: tokio::sync::Mutex<db::DB>,
-}
-struct ManagedConfig {
-    config: tokio::sync::Mutex<config::Config>,
+struct ManagedState {
+    state: tokio::sync::Mutex<state::State>,
 }
 
-impl ManagedDB {
-    pub async fn db(self: &Self) -> tokio::sync::MutexGuard<'_, db::DB> {
-        self.db.lock().await
-    }
-}
-
-impl ManagedConfig {
-    pub async fn config(
+impl ManagedState {
+    pub async fn state(
         self: &Self,
-    ) -> tokio::sync::MutexGuard<'_, config::Config> {
-        self.config.lock().await
+    ) -> tokio::sync::MutexGuard<'_, state::State> {
+        self.state.lock().await
     }
-}
-
-#[tauri::command]
-async fn greet(name: &str) -> Result<String, ()> {
-    println!("called 'greet'");
-    Ok(format!("Hello, {}!", name))
 }
 
 #[tauri::command]
 async fn set_api_token(
     token: String,
-    mdb: tauri::State<'_, ManagedDB>,
-    mcfg: tauri::State<'_, ManagedConfig>,
+    mstate: tauri::State<'_, ManagedState>,
 ) -> Result<bool, ()> {
     println!("set token to {}", token);
 
-    let db = mdb.db().await;
-    let mut cfg = mcfg.config().await;
+    let db = &mstate.state().await.db;
+    let cfg = &mstate.state().await.config;
     cfg.set_api_token(&db, &token).await.unwrap_or_else(|err| {
         panic!("Unable to set API Token! Error: {}", err);
     });
@@ -72,11 +57,13 @@ async fn set_api_token(
 
 #[tauri::command]
 async fn get_api_token(
-    mcfg: tauri::State<'_, ManagedConfig>,
+    mstate: tauri::State<'_, ManagedState>,
 ) -> Result<String, ()> {
-    let token = match &mcfg.config().await.api_token {
-        Some(t) => t.clone(),
-        None => String::default(),
+    let db = &mstate.state().await.db;
+    let cfg = &mstate.state().await.config;
+    let token = match &cfg.get_api_token(&db).await {
+        Ok(val) => val.clone(),
+        Err(_) => String::default(),
     };
 
     Ok(token)
@@ -94,12 +81,8 @@ async fn setup_db(path: &std::path::PathBuf) -> db::DB {
 }
 
 async fn setup_config(db: &db::DB) -> config::Config {
-    let mut cfg = config::Config::default();
-    cfg.init(db).await;
-
-    cfg
+    config::Config::default()
 }
-
 
 #[tokio::main]
 async fn main() {
@@ -113,19 +96,16 @@ async fn main() {
 
     tauri::async_runtime::set(tokio::runtime::Handle::current());
 
-    let mdb = ManagedDB { db: tokio::sync::Mutex::new(db_handle) };
-
     tauri::Builder::default()
-        .manage(paths)
-        .manage(mdb)
-        .manage(ManagedConfig {
-            config: tokio::sync::Mutex::new(cfg),
+        .manage(ManagedState {
+            state: tokio::sync::Mutex::new(state::State {
+                config: cfg,
+                db: db_handle,
+                paths: paths,
+                gh: gh::Github::new(),
+            }),
         })
-        .invoke_handler(tauri::generate_handler![
-            greet,
-            set_api_token,
-            get_api_token,
-        ])
+        .invoke_handler(tauri::generate_handler![set_api_token, get_api_token,])
         .setup(|app| {
             let handle = app.app_handle();
             // let window = app.get_window("main").unwrap();

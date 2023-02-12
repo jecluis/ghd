@@ -14,7 +14,15 @@
 
 use std::collections::HashMap;
 
+use sqlx::Row;
+
 use crate::db::DB;
+
+#[derive(Debug)]
+pub enum ConfigError {
+    SettingNotFoundError,
+    TokenNotFoundError,
+}
 
 #[derive(sqlx::FromRow)]
 pub struct ConfigEntry {
@@ -22,41 +30,17 @@ pub struct ConfigEntry {
     pub value: String,
 }
 
-pub struct Config {
-    pub api_token: Option<String>,
-    pub settings: HashMap<String, String>,
-}
+pub struct Config {}
 
 impl Default for Config {
     fn default() -> Self {
-        Config {
-            api_token: None,
-            settings: HashMap::default(),
-        }
+        Config {}
     }
 }
 
 impl Config {
-    pub async fn init(self: &mut Self, db: &DB) {
-        let stream = sqlx::query_as::<_, ConfigEntry>("SELECT * FROM settings")
-            .fetch_all(db.pool())
-            .await
-            .unwrap_or_else(|err| {
-                panic!("Unable to obtain settings: {}", err);
-            });
-
-        for entry in &stream {
-            println!("{} = {}", entry.key, entry.value);
-            self.settings.insert(entry.key.clone(), entry.value.clone());
-
-            if entry.key == "api_token" {
-                self.api_token = Some(entry.value.clone());
-            }
-        }
-    }
-
     pub async fn set_api_token(
-        self: &mut Self,
+        self: &Self,
         db: &DB,
         token: &String,
     ) -> Result<(), String> {
@@ -68,12 +52,27 @@ impl Config {
                 panic!("Error inserting into database: {}", err);
             });
 
-        self.api_token = Some(token.clone());
-        self.settings
-            .insert(String::from("api_token"), token.clone());
-
         Ok(())
     }
-}
 
-unsafe impl Send for Config {}
+    pub async fn get_api_token(
+        self: &Self,
+        db: &DB,
+    ) -> Result<String, ConfigError> {
+        let val: Result<sqlx::sqlite::SqliteRow, sqlx::Error> =
+            sqlx::query("SELECT value FROM settings WHERE key='api_token'")
+                .fetch_one(db.pool())
+                .await;
+        match &val {
+            Ok(res) => {
+                match res.try_get("value") {
+                    Ok(res) => return Ok(res),
+                    Err(err) => {
+                        panic!("Unable to obtain token column: {}", err);
+                    }
+                };
+            }
+            Err(_) => return Err(ConfigError::TokenNotFoundError),
+        }
+    }
+}

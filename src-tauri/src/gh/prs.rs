@@ -38,6 +38,7 @@ pub struct PullRequestSearchResult {
 
 pub async fn get(
     github: &Github,
+    token: &String,
     user: &String,
 ) -> Result<Vec<PullRequestEntry>, reqwest::StatusCode> {
     let qstr = format!("type:pr state:open author:{}", user);
@@ -45,7 +46,7 @@ pub async fn get(
         .get("https://api.github.com/search/issues")
         .query(&[("q", qstr)]);
 
-    match github.send(req).await {
+    match github.send(req, token).await {
         Ok(res) => {
             return Ok(res
                 .json::<PullRequestSearchResult>()
