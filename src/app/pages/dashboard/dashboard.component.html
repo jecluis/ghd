@@ -18,4 +18,15 @@ limitations under the License.
   <p>dashboard</p>
 
   <p>iteration: {{iteration}}</p>
+
+  <p>User: {{user?.login}}</p>
+  <p>Name: {{user?.name}}</p>
+  <p>Avatar: <img src="{{user?.avatar_url}}" /></p>
+
+  <p>PRs:</p>
+  <ul>
+    <li *ngFor="let entry of prs">
+      <span>{{entry.id}} {{entry.title}} {{entry.age_str}}</span>
+    </li>
+  </ul>
 </div>

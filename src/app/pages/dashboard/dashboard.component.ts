@@ -13,11 +13,24 @@
 // limitations under the License.
 
 import { Component, NgZone, OnDestroy, OnInit } from "@angular/core";
+import { Subscription } from "rxjs";
+import {
+  PREntry,
+  PullRequestsService,
+} from "src/app/shared/services/pull-requests.service";
 import {
   TauriEventListener,
   TauriListenerEvent,
   TauriService,
 } from "src/app/shared/services/tauri.service";
+import { invoke } from "@tauri-apps/api";
+
+type GithubUser = {
+  id: number;
+  login: string;
+  name: string;
+  avatar_url: string;
+};
 
 @Component({
   selector: "ghd-dashboard",
@@ -28,15 +41,44 @@ export class DashboardComponent
   implements OnInit, OnDestroy, TauriEventListener
 {
   public iterationN = 0;
+  public prs: PREntry[] = [];
+  public user?: GithubUser;
 
-  public constructor(private zone: NgZone, private tauriSvc: TauriService) {}
+  private prSubscription?: Subscription;
+
+  public constructor(
+    private zone: NgZone,
+    private tauriSvc: TauriService,
+    private prSvc: PullRequestsService,
+  ) {}
 
   public ngOnInit(): void {
     this.tauriSvc.register(TauriService.events.ITERATION, this);
+    this.prSubscription = this.prSvc.getPullRequests().subscribe({
+      next: (entries: PREntry[]) => {
+        this.prs = entries;
+      },
+    });
+    invoke("get_user")
+      .then((res) => {
+        console.log("user: ", res);
+        this.zone.run(() => {
+          this.user = <GithubUser>res;
+        });
+      })
+      .catch(() => {
+        console.log("user not defined");
+        this.zone.run(() => {
+          this.user = undefined;
+        });
+      });
   }
 
   public ngOnDestroy(): void {
     this.tauriSvc.unregister(TauriService.events.ITERATION, this);
+    if (!!this.prSubscription) {
+      this.prSubscription.unsubscribe();
+    }
   }
 
   public set iteration(value: number) {
