@@ -14,23 +14,16 @@
 
 use sqlx::{migrate::MigrateDatabase, sqlite::SqliteQueryResult, SqlitePool};
 
-pub mod pr;
-
 pub struct DB {
     pub uri: String,
     pub pool: Option<SqlitePool>,
-    pub prs: pr::DBPR,
 }
 
 impl DB {
     pub fn new(path: &std::path::PathBuf) -> DB {
         let uri = format!("sqlite://{}", path.display());
 
-        DB {
-            uri,
-            pool: None,
-            prs: pr::DBPR::default(),
-        }
+        DB { uri, pool: None }
     }
 
     pub async fn connect(self: &mut Self) {
@@ -56,8 +49,6 @@ impl DB {
             };
         }
 
-        self.prs.setup(&self.uri).await;
-
         self
     }
 
@@ -78,6 +69,28 @@ async fn create_db_schema(uri: &str) -> Result<SqliteQueryResult, sqlx::Error> {
     CREATE TABLE IF NOT EXISTS settings (
         key         TEXT PRIMARY KEY NOT NULL,
         value       TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS users (
+        id          INTEGER PRIMARY KEY,
+        login       TEXT UNIQUE NOT NULL,
+        avatar_url  TEXT NOT NULL,
+        name        TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS pull_request (
+        id          INTEGER PRIMARY KEY,
+        title       TEXT NOT NULL,
+        author      TEXT NOT NULL,
+        created_at  INTEGER,
+        updated_at  INTEGER,
+        closed_at   INTEGER,
+        merged_at   INTEGER,
+        comments    INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS tokens (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        token       TEXT NOT NULL,
+        user_id     INTEGER,
+        UNIQUE(token, user_id)
     );
     ";
 

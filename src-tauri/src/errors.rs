@@ -12,26 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use sqlx::Row;
-
-use crate::db::DB;
-
 #[derive(Debug)]
-pub enum ConfigError {
-    SettingNotFoundError,
+pub enum GHDError {
     TokenNotFoundError,
-}
-
-#[derive(sqlx::FromRow)]
-pub struct ConfigEntry {
-    pub key: String,
-    pub value: String,
-}
-
-pub struct Config {}
-
-impl Default for Config {
-    fn default() -> Self {
-        Config {}
-    }
+    BadTokenError,
+    UserNotSetError,
+    UnknownError,
 }

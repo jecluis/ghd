@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::Github;
+use super::{types::GithubRequest, Github};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct PullRequestEntry {
@@ -37,22 +37,16 @@ pub struct PullRequestSearchResult {
 }
 
 pub async fn get(
-    github: &Github,
     token: &String,
     user: &String,
 ) -> Result<Vec<PullRequestEntry>, reqwest::StatusCode> {
     let qstr = format!("type:pr state:open author:{}", user);
-    let req = github
-        .get("https://api.github.com/search/issues")
-        .query(&[("q", qstr)]);
+    let ghreq = GithubRequest::new(token);
+    let req = ghreq.get("/search/issues").query(&[("q", qstr)]);
 
-    match github.send(req, token).await {
+    match ghreq.send::<PullRequestSearchResult>(req).await {
         Ok(res) => {
-            return Ok(res
-                .json::<PullRequestSearchResult>()
-                .await
-                .unwrap()
-                .items);
+            return Ok(res.items);
         }
         Err(err) => Err(err),
     }

@@ -22,6 +22,7 @@ use tauri::Manager;
 mod bg;
 mod config;
 mod db;
+mod errors;
 mod gh;
 mod gh_types;
 mod paths;
@@ -46,27 +47,42 @@ async fn set_api_token(
 ) -> Result<bool, ()> {
     println!("set token to {}", token);
 
-    let db = &mstate.state().await.db;
-    let cfg = &mstate.state().await.config;
-    cfg.set_api_token(&db, &token).await.unwrap_or_else(|err| {
-        panic!("Unable to set API Token! Error: {}", err);
-    });
+    let state = &mstate.state().await;
 
-    Ok(true)
+    let db = &state.db;
+    let gh = &state.gh;
+    match gh.set_token(&db, &token).await {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
+    }
 }
 
 #[tauri::command]
 async fn get_api_token(
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<String, ()> {
-    let db = &mstate.state().await.db;
-    let cfg = &mstate.state().await.config;
-    let token = match &cfg.get_api_token(&db).await {
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+    let token = match &gh.get_token(&db).await {
         Ok(val) => val.clone(),
         Err(_) => String::default(),
     };
 
     Ok(token)
+}
+
+#[tauri::command]
+async fn get_user(
+    mstate: tauri::State<'_, ManagedState>,
+) -> Result<gh::types::GithubUser, ()> {
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+    match gh.get_user(&db).await {
+        Ok(res) => Ok(res),
+        Err(_) => Err(()),
+    }
 }
 
 async fn setup_paths() -> paths::Paths {
@@ -105,7 +121,11 @@ async fn main() {
                 gh: gh::Github::new(),
             }),
         })
-        .invoke_handler(tauri::generate_handler![set_api_token, get_api_token,])
+        .invoke_handler(tauri::generate_handler![
+            set_api_token,
+            get_api_token,
+            get_user
+        ])
         .setup(|app| {
             let handle = app.app_handle();
             // let window = app.get_window("main").unwrap();

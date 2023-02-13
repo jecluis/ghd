@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use crate::{
-    config::Config,
     db::DB,
     gh::{self, Github},
     ManagedState,
@@ -46,20 +45,21 @@ impl BGTask {
     pub async fn run(self: &mut Self, app: tauri::AppHandle) {
         let window = app.get_window("main").unwrap();
         let mstate = app.try_state::<ManagedState>().unwrap();
-        let state = &mstate.state().await;
-        let db = &state.db;
-        let cfg = &state.config;
-        let gh = &state.gh;
 
         let mut n = 1;
         loop {
+            let state = &mstate.state().await;
+            let db = &state.db;
+            let _cfg = &state.config;
+            let gh = &state.gh;
+
             println!("background task iteration #{}", n);
             window.emit("iteration", n).unwrap();
             n += 1;
 
-            let token = match self.try_get_token(&cfg, &db).await {
+            let token = match self.try_get_token(&gh, &db).await {
                 Ok(t) => {
-                    println!("token: {}", t);
+                    // println!("token: {}", t);
                     t
                 }
                 Err(_) => {
@@ -78,10 +78,10 @@ impl BGTask {
 
     async fn try_get_token(
         self: &Self,
-        cfg: &Config,
+        gh: &Github,
         db: &DB,
     ) -> Result<String, ()> {
-        let t = get_token(&cfg, &db).await;
+        let t = get_token(&gh, &db).await;
         if !t.is_empty() {
             return Ok(t.clone());
         }
@@ -128,8 +128,8 @@ impl BGTask {
     }
 }
 
-async fn get_token(cfg: &Config, db: &DB) -> String {
-    match &cfg.get_api_token(&db).await {
+async fn get_token(gh: &Github, db: &DB) -> String {
+    match &gh.get_token(&db).await {
         Ok(t) => t.clone(),
         Err(_) => String::default(),
     }
