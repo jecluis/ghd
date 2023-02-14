@@ -38,12 +38,7 @@ impl Github {
         let ghreq = GithubRequest::new(token);
         let req = ghreq.get("/user");
         match ghreq.send::<GithubUserReply>(req).await {
-            Ok(res) => Ok(GithubUser {
-                login: res.login,
-                id: res.id,
-                avatar_url: res.avatar_url,
-                name: res.name,
-            }),
+            Ok(res) => Ok(to_user(res)),
             Err(err) => Err(err),
         }
     }
@@ -144,7 +139,7 @@ impl Github {
     ) -> Result<GithubUser, GHDError> {
         let val: GithubUser = match sqlx::query_as::<_, GithubUser>(
             "
-            SELECT id, name, login, avatar_url
+            SELECT id, login, name, avatar_url
             FROM users
             WHERE id = (
                 SELECT user_id FROM tokens
@@ -168,11 +163,108 @@ impl Github {
         Ok(val)
     }
 
+    pub async fn get_user_by_login(
+        self: &Self,
+        db: &DB,
+        login: &String,
+    ) -> Result<GithubUser, GHDError> {
+        match get_user_by_login(&db, &login).await {
+            Ok(res) => return Ok(res),
+            Err(_) => {}
+        };
+
+        let token: String = match self.get_token(db).await {
+            Ok(t) => t.clone(),
+            Err(err) => return Err(err),
+        };
+
+        let ghreq = GithubRequest::new(&token);
+        let reqstr = format!("/users/{}", login);
+        let req = ghreq.get(&reqstr);
+        match ghreq.send::<GithubUserReply>(req).await {
+            Ok(res) => return Ok(to_user(res)),
+            Err(err) => {
+                return match err {
+                    reqwest::StatusCode::NOT_FOUND => {
+                        Err(GHDError::UserNotFoundError)
+                    }
+                    _ => Err(GHDError::UnknownError),
+                };
+            }
+        }
+    }
+
+    pub async fn track_user(
+        self: &Self,
+        db: &DB,
+        login: &String,
+    ) -> Result<GithubUser, GHDError> {
+        match get_user_by_login(&db, &login).await {
+            Ok(res) => {
+                println!("user {} already exists!", login);
+                return Ok(res);
+            }
+            Err(_) => {}
+        };
+
+        let user = match self.get_user_by_login(&db, &login).await {
+            Ok(res) => res,
+            Err(err) => return Err(err),
+        };
+
+        sqlx::query(
+            "
+            INSERT INTO users (id, login, name, avatar_url)
+            VALUES (?, ?, ?, ?)
+            ",
+        )
+        .bind(&user.id)
+        .bind(&user.login)
+        .bind(&user.name)
+        .bind(&user.avatar_url)
+        .execute(db.pool())
+        .await
+        .unwrap_or_else(|err| {
+            panic!("Unable to commit new user entry to database: {}", err);
+        });
+
+        Ok(user)
+    }
+
     pub async fn get_pulls(
         self: &Self,
         token: &String,
     ) -> Result<Vec<PullRequestEntry>, reqwest::StatusCode> {
         let user = String::from("jecluis");
         prs::get(token, &user).await
+    }
+}
+
+fn to_user(res: GithubUserReply) -> GithubUser {
+    GithubUser {
+        login: res.login,
+        id: res.id,
+        avatar_url: res.avatar_url,
+        name: res.name,
+    }
+}
+
+async fn get_user_by_login(
+    db: &DB,
+    login: &String,
+) -> Result<GithubUser, GHDError> {
+    match sqlx::query_as::<_, GithubUser>(
+        "
+        SELECT id, login, name, avatar_url
+        FROM users
+        WHERE login = ?
+        ",
+    )
+    .bind(&login)
+    .fetch_one(db.pool())
+    .await
+    {
+        Ok(res) => Ok(res),
+        Err(_) => Err(GHDError::UserNotFoundError),
     }
 }

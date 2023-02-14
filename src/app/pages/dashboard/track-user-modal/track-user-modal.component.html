@@ -11,7 +11,7 @@
     <div class="col-8">
       <input class="form-control" id="modal-add-user-input" type="text"
              placeholder="username" [formControl]="usernameFormControl"
-             [class.is-invalid]="isSet() && (isInvalid() || !userExists)"
+             [class.is-invalid]="isSet() && (isInvalid() || (checkedUser &&!userExists))"
              [class.is-valid]="checkedUser && userExists"
              (input)="touchUsername()" />
       <div class="invalid-feedback"
@@ -26,8 +26,8 @@
       </div>
     </div>
     <div class="col-2">
-      <button type="submit" class="btn btn-primary"
-              [disabled]="isAdding || !isSet() || (isSet() && isInvalid())"
+      <button type="submit" class="btn btn-primary" [disabled]="isAdding ||
+                  (checkedUser && (!isSet() || (isSet() && isInvalid())))"
               *ngIf="!isChecking" (click)="checkUserExists()">
         Check
       </button>
@@ -44,11 +44,25 @@
     <span class="col">{{user.login}}</span>
     <span class="col">{{user.name}}</span>
   </div>
+  <div *ngIf="!!addedUser && !errorAdding" class="mx-auto">
+    <span class="text-success">
+      Added '{{addedUser.login}}' to tracked users!
+    </span>
+  </div>
+  <div *ngIf="errorAdding" class="mx-auto">
+    <span class="text-danger">
+      Unable to add user!
+    </span>
+  </div>
 </div>
 
 <div class="modal-footer">
   <button type="button" class="btn btn-success"
-          [disabled]="!checkedUser || !userExists">
+          [disabled]="!checkedUser || !userExists" *ngIf="!isAdding"
+          (click)="submit()">
     Submit
   </button>
+  <div class="spinner-border text-primary" role="status" *ngIf="isAdding">
+    <span class="visually-hidden">Submitting...</span>
+  </div>
 </div>

@@ -39,6 +39,8 @@ export class TrackUserModalComponent {
   public checkedUser = false;
   public userExists = false;
   public user?: GithubUser;
+  public addedUser?: GithubUser;
+  public errorAdding = false;
 
   public constructor(
     private activeModal: NgbActiveModal,
@@ -74,6 +76,8 @@ export class TrackUserModalComponent {
     this.checkedUser = false;
     this.userExists = false;
     this.user = undefined;
+    this.addedUser = undefined;
+    this.errorAdding = false;
   }
 
   public isInvalid(): boolean {
@@ -82,6 +86,30 @@ export class TrackUserModalComponent {
 
   public isSet(): boolean {
     return this.usernameFormControl.value !== "";
+  }
+
+  public submit(): void {
+    if (
+      this.isAdding ||
+      !this.checkedUser ||
+      (this.checkedUser && !this.userExists)
+    ) {
+      return;
+    }
+
+    this.isAdding = true;
+    const username = this.usernameFormControl.value;
+    this.tauriSvc
+      .addTrackedUser(username)
+      .then((res: GithubUser) => {
+        this.addedUser = res;
+      })
+      .catch(() => {
+        this.errorAdding = true;
+      })
+      .finally(() => {
+        this.isAdding = false;
+      });
   }
 }
 

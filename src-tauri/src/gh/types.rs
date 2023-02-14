@@ -70,8 +70,8 @@ pub struct GithubUserReply {
 
 #[derive(sqlx::FromRow, serde::Serialize)]
 pub struct GithubUser {
-    pub login: String,
     pub id: i64,
-    pub avatar_url: String,
+    pub login: String,
     pub name: String,
+    pub avatar_url: String,
 }

@@ -105,7 +105,14 @@ async fn add_tracked_user(
     username: String,
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<gh::types::GithubUser, ()> {
-    Err(())
+    println!("track new user: {}", username);
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+    match gh.track_user(&db, &username).await {
+        Ok(res) => Ok(res),
+        Err(_) => Err(()),
+    }
 }
 
 #[tauri::command]
@@ -114,7 +121,13 @@ async fn check_user_exists(
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<gh::types::GithubUser, ()> {
     println!("check user exist: {}", username);
-    Err(())
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+    match gh.get_user_by_login(&db, &username).await {
+        Ok(res) => Ok(res),
+        Err(_) => Err(()),
+    }
 }
 
 async fn setup_paths() -> paths::Paths {

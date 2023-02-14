@@ -102,4 +102,8 @@ export class TauriService {
   public checkUserExists(username: string): Promise<GithubUser> {
     return invoke("check_user_exists", { username: username });
   }
+
+  public addTrackedUser(username: string): Promise<GithubUser> {
+    return invoke("add_tracked_user", { username: username });
+  }
 }
