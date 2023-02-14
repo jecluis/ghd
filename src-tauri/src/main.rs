@@ -109,13 +109,19 @@ async fn get_tracked_users(
 #[tauri::command]
 async fn add_tracked_user(
     username: String,
+    window: tauri::Window,
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<gh::types::GithubUser, ()> {
     println!("track new user: {}", username);
     let state = &mstate.state().await;
     let db = &state.db;
     let gh = &state.gh;
-    match gh.track_user(&db, &username).await {
+    match gh
+        .track_user(&db, &username, |user| {
+            events::emit_user_update(&window, &user);
+        })
+        .await
+    {
         Ok(res) => Ok(res),
         Err(_) => Err(()),
     }

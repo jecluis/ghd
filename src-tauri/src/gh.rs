@@ -194,11 +194,15 @@ impl Github {
         }
     }
 
-    pub async fn track_user(
+    pub async fn track_user<F>(
         self: &Self,
         db: &DB,
         login: &String,
-    ) -> Result<GithubUser, GHDError> {
+        cb: F,
+    ) -> Result<GithubUser, GHDError>
+    where
+        F: FnOnce(&GithubUser),
+    {
         match get_user_by_login(&db, &login).await {
             Ok(res) => {
                 println!("user {} already exists!", login);
@@ -228,6 +232,7 @@ impl Github {
             panic!("Unable to commit new user entry to database: {}", err);
         });
 
+        cb(&user);
         Ok(user)
     }
 
