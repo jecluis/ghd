@@ -30,6 +30,7 @@
               "src/assets"
             ],
             "styles": [
+              "node_modules/@mdi/font/scss/materialdesignicons.scss",
               "src/styles.scss"
             ],
             "scripts": []
