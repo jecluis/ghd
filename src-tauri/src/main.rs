@@ -93,6 +93,30 @@ async fn get_user(
     }
 }
 
+#[tauri::command]
+async fn get_tracked_users(
+    mstate: tauri::State<'_, ManagedState>,
+) -> Result<Vec<gh::types::GithubUser>, ()> {
+    Ok(vec![])
+}
+
+#[tauri::command]
+async fn add_tracked_user(
+    username: String,
+    mstate: tauri::State<'_, ManagedState>,
+) -> Result<gh::types::GithubUser, ()> {
+    Err(())
+}
+
+#[tauri::command]
+async fn check_user_exists(
+    username: String,
+    mstate: tauri::State<'_, ManagedState>,
+) -> Result<gh::types::GithubUser, ()> {
+    println!("check user exist: {}", username);
+    Err(())
+}
+
 async fn setup_paths() -> paths::Paths {
     paths::Paths::default().init().await
 }
@@ -130,7 +154,12 @@ async fn main() {
             }),
         })
         .invoke_handler(tauri::generate_handler![
-            set_token, get_token, get_user
+            set_token,
+            get_token,
+            get_user,
+            get_tracked_users,
+            add_tracked_user,
+            check_user_exists,
         ])
         .setup(|app| {
             let handle = app.app_handle();

@@ -7,6 +7,8 @@ import { MainLayoutComponent } from "./layout/main-layout/main-layout.component"
 import { SettingsComponent } from "./pages/settings/settings.component";
 import { DashboardComponent } from "./pages/dashboard/dashboard.component";
 import { ReactiveFormsModule } from "@angular/forms";
+import { NgbModalModule } from "@ng-bootstrap/ng-bootstrap";
+import { TrackUserModalComponent } from './pages/dashboard/track-user-modal/track-user-modal.component';
 
 @NgModule({
   declarations: [
@@ -14,8 +16,14 @@ import { ReactiveFormsModule } from "@angular/forms";
     MainLayoutComponent,
     SettingsComponent,
     DashboardComponent,
+    TrackUserModalComponent,
   ],
-  imports: [BrowserModule, AppRoutingModule, ReactiveFormsModule],
+  imports: [
+    BrowserModule,
+    AppRoutingModule,
+    ReactiveFormsModule,
+    NgbModalModule,
+  ],
   providers: [],
   bootstrap: [AppComponent],
 })

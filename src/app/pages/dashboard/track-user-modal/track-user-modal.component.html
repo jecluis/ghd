@@ -1,0 +1,54 @@
+<div class="modal-header">
+  <h4 class="modal-title" id="modal-title">Track User</h4>
+  <button type="button" class="btn-close" aria-label="Close"
+          (click)="close()"></button>
+</div>
+<div class="modal-body">
+  <div class="row">
+    <label for="modal-add-user-input" class="col-2 col-form-label">
+      Username
+    </label>
+    <div class="col-8">
+      <input class="form-control" id="modal-add-user-input" type="text"
+             placeholder="username" [formControl]="usernameFormControl"
+             [class.is-invalid]="isSet() && (isInvalid() || !userExists)"
+             [class.is-valid]="checkedUser && userExists"
+             (input)="touchUsername()" />
+      <div class="invalid-feedback"
+           *ngIf="usernameFormControl.errors?.['badUsername']">
+        Badly formatted username
+      </div>
+      <div class="invalid-feedback" *ngIf="checkedUser && !userExists">
+        User not found!
+      </div>
+      <div class="valid-feedback" *ngIf="checkedUser && userExists">
+        User found!
+      </div>
+    </div>
+    <div class="col-2">
+      <button type="submit" class="btn btn-primary"
+              [disabled]="isAdding || !isSet() || (isSet() && isInvalid())"
+              *ngIf="!isChecking" (click)="checkUserExists()">
+        Check
+      </button>
+      <div class="spinner-border text-primary" role="status" *ngIf="isChecking">
+        <span class="visually-hidden">Checking...</span>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="userExists && !!user" class="row">
+    <span class="col">
+      <img class="rounded-circle" src="{{user.avatar_url}}"
+           style="width: 24px; height: 24px" />
+    </span>
+    <span class="col">{{user.login}}</span>
+    <span class="col">{{user.name}}</span>
+  </div>
+</div>
+
+<div class="modal-footer">
+  <button type="button" class="btn btn-success"
+          [disabled]="!checkedUser || !userExists">
+    Submit
+  </button>
+</div>

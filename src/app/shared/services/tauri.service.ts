@@ -98,4 +98,8 @@ export class TauriService {
   public setToken(token: string): Promise<boolean> {
     return invoke("set_token", { token: token });
   }
+
+  public checkUserExists(username: string): Promise<GithubUser> {
+    return invoke("check_user_exists", { username: username });
+  }
 }

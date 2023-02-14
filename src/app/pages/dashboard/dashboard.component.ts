@@ -28,6 +28,8 @@ import {
   GithubService,
   UsersMap,
 } from "src/app/shared/services/github.service";
+import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
+import { TrackUserModalComponent } from "./track-user-modal/track-user-modal.component";
 
 type GithubUser = {
   id: number;
@@ -55,6 +57,7 @@ export class DashboardComponent
 
   public constructor(
     private zone: NgZone,
+    private modalSvc: NgbModal,
     private tauriSvc: TauriService,
     private prSvc: PullRequestsService,
     private ghSvc: GithubService,
@@ -116,6 +119,10 @@ export class DashboardComponent
       this.handleIteration(<number>event.payload);
     } else if (evname === TauriService.events.PULL_REQUESTS_UPDATE) {
     }
+  }
+
+  public openTrackUserModal(): void {
+    this.modalSvc.open(TrackUserModalComponent);
   }
 
   private handleIteration(n: number) {
