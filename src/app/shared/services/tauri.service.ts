@@ -87,15 +87,15 @@ export class TauriService {
     listenerMap.delete(listenerID);
   }
 
-  public get_user(): Promise<GithubUser> {
+  public getUser(): Promise<GithubUser> {
     return invoke("get_user");
   }
 
-  public get_token(): Promise<string> {
+  public getToken(): Promise<string> {
     return invoke("get_token");
   }
 
-  public set_token(token: string): Promise<boolean> {
+  public setToken(token: string): Promise<boolean> {
     return invoke("set_token", { token: token });
   }
 }

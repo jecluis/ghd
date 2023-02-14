@@ -63,14 +63,14 @@ export class GithubService implements TauriEventListener {
   }
 
   private init(): void {
-    this.tauriSvc.get_token().then((res: string) => {
+    this.tauriSvc.getToken().then((res: string) => {
       if (res !== "") {
         this.hasToken = true;
         this.availableSubject.next(this.isAvailable());
       }
     });
     this.tauriSvc
-      .get_user()
+      .getUser()
       .then((res: GithubUser) => {
         this.users[res.login] = res;
         this.mainUser = res.login;

@@ -38,7 +38,7 @@ export class SettingsComponent implements OnInit {
     }
     const newToken = this.apiTokenFormControl.value;
     this.tauriSvc
-      .set_token(newToken)
+      .setToken(newToken)
       .then((res: boolean) => {
         this.tokenIsValidated = true;
         if (!res) {
@@ -81,7 +81,7 @@ export class SettingsComponent implements OnInit {
 
   private refreshToken() {
     this.tauriSvc
-      .get_token()
+      .getToken()
       .then((res: string) => {
         this.apiToken = res;
         this.apiTokenFormControl.setValue(this.apiToken);
