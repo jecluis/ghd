@@ -50,6 +50,7 @@ export class DashboardComponent
   public iterationN = 0;
   public prs: PREntry[] = [];
   public user?: GithubUser;
+  public trackedUsers: GithubUser[] = [];
 
   private prSubscription?: Subscription;
   private availSubscription?: Subscription;
@@ -83,6 +84,14 @@ export class DashboardComponent
           return;
         }
         this.user = res[mainUser];
+        let userlst: GithubUser[] = [];
+        Object.keys(res).forEach((login: string) => {
+          if (login === mainUser) {
+            return;
+          }
+          userlst.push(res[login]);
+        });
+        this.trackedUsers = userlst;
       },
     });
   }

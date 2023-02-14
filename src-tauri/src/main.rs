@@ -97,7 +97,13 @@ async fn get_user(
 async fn get_tracked_users(
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<Vec<gh::types::GithubUser>, ()> {
-    Ok(vec![])
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+    match gh.get_tracked_users(&db).await {
+        Ok(res) => Ok(res),
+        Err(_) => Err(()),
+    }
 }
 
 #[tauri::command]

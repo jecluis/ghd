@@ -106,4 +106,8 @@ export class TauriService {
   public addTrackedUser(username: string): Promise<GithubUser> {
     return invoke("add_tracked_user", { username: username });
   }
+
+  public getTrackedUsers(): Promise<GithubUser[]> {
+    return invoke("get_tracked_users");
+  }
 }

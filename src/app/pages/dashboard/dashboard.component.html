@@ -15,20 +15,22 @@ limitations under the License.
 -->
 
 <div class="d-flex flex-row">
-  <div class="d-flex flex-column flex-shrink-0 bg-light" style="width: 4.5rem">
+  <div class="d-flex flex-column flex-shrink-0 bg-light" style="width: 4.5rem"
+       *ngIf="isAvailable">
 
     <ul class="nav nav-pills nav-flush flex-column mb-auto text-center mt-3">
 
       <li class="nav-item">
         <a class="nav-link active py-2 border-bottom rounded-0">
-          <img class="rounded-circle" src="{{user?.avatar_url}}" style="width:
-          36px; height: 36px" />
+          <img class="rounded-circle" src="{{user?.avatar_url}}"
+               style="width: 36px; height: 36px" />
         </a>
       </li>
 
-      <li class="nav-item">
-        <a class="nav-link py-0 border-bottom rounded-0">
-          <i class="mdi mdi-36px mdi-account-circle-outline"></i>
+      <li class="nav-item" *ngFor="let tracked of trackedUsers">
+        <a class="nav-link py-2 border-bottom rounded-0">
+          <img class="rounded-circle" src="{{tracked.avatar_url}}"
+               style="width: 36px; height: 36px;" />
         </a>
       </li>
     </ul>

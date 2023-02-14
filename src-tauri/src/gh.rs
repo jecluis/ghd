@@ -231,6 +231,23 @@ impl Github {
         Ok(user)
     }
 
+    pub async fn get_tracked_users(
+        self: &Self,
+        db: &DB,
+    ) -> Result<Vec<GithubUser>, GHDError> {
+        match sqlx::query_as::<_, GithubUser>(
+            "
+            SELECT id, login, name, avatar_url FROM users
+            ",
+        )
+        .fetch_all(db.pool())
+        .await
+        {
+            Ok(res) => Ok(res),
+            Err(_) => Err(GHDError::UnknownError),
+        }
+    }
+
     pub async fn get_pulls(
         self: &Self,
         token: &String,

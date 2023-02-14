@@ -77,6 +77,18 @@ export class GithubService implements TauriEventListener {
         this.usersSubject.next(this.users);
       })
       .catch(() => {});
+
+    this.tauriSvc
+      .getTrackedUsers()
+      .then((res: GithubUser[]) => {
+        res.forEach((user: GithubUser) => {
+          this.users[user.login] = user;
+        });
+        this.usersSubject.next(this.users);
+      })
+      .catch(() => {
+        console.error("error obtaining tracked users!");
+      });
   }
 
   public isAvailable(): boolean {
