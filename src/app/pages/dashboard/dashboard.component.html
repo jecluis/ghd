@@ -14,19 +14,59 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<div class="card">
-  <p>dashboard</p>
+<div class="d-flex flex-row">
+  <div class="d-flex flex-column flex-shrink-0 bg-light" style="width: 4.5rem">
 
-  <p>iteration: {{iteration}}</p>
+    <ul class="nav nav-pills nav-flush flex-column mb-auto text-center">
 
-  <p>User: {{user?.login}}</p>
-  <p>Name: {{user?.name}}</p>
-  <p>Avatar: <img src="{{user?.avatar_url}}" /></p>
+      <li class="nav-item mt-2">
+        <a class="nav-link active py-2 border-bottom rounded-0">
+          <img class="rounded-circle" src="{{user?.avatar_url}}" style="width:
+          36px; height: 36px" />
+        </a>
+      </li>
 
-  <p>PRs:</p>
-  <ul>
-    <li *ngFor="let entry of prs">
-      <span>{{entry.id}} {{entry.title}} {{entry.age_str}}</span>
-    </li>
-  </ul>
+      <li class="nav-item">
+        <a class="nav-link py-0 border-bottom rounded-0">
+          <i class="mdi mdi-36px mdi-account-circle-outline"></i>
+        </a>
+      </li>
+    </ul>
+    <div class="border-top">
+      <a class="d-flex align-items-center justify-content-center p-3 link-dark
+                text-decoration-none">
+        <i class="mdi mdi-24px mdi-account-plus-outline"></i>
+      </a>
+    </div>
+  </div>
+
+  <div class="mt-3 mx-3">
+
+    <div class="mt-3" *ngIf="!isAvailable">
+      <h4>Dashboard not available until a valid token is set.</h4>
+    </div>
+
+    <div class="card mt-3 p-3" *ngIf="isAvailable">
+
+      <p>dashboard</p>
+
+      <p>iteration: {{iteration}}</p>
+      <p>available: {{isAvailable}}</p>
+
+      <div>
+        <div>
+          <p>User: {{user?.login}}</p>
+          <p>Name: {{user?.name}}</p>
+          <p>Avatar: <img src="{{user?.avatar_url}}" /></p>
+        </div>
+
+        <p>PRs:</p>
+        <ul>
+          <li *ngFor="let entry of prs">
+            <span>{{entry.id}} {{entry.title}} {{entry.age_str}}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
 </div>

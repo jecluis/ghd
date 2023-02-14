@@ -71,11 +71,15 @@ impl Github {
         }
     }
 
-    pub async fn set_token(
+    pub async fn set_token<F>(
         self: &Self,
         db: &DB,
         token: &String,
-    ) -> Result<(), GHDError> {
+        cb: F,
+    ) -> Result<(), GHDError>
+    where
+        F: FnOnce(&GithubUser),
+    {
         println!("setting token {}", token);
         println!("  obtaining user for token");
         let user: GithubUser = match self.whoami(token).await {
@@ -104,10 +108,10 @@ impl Github {
             VALUES (?, ?, ?, ?)
             ",
         )
-        .bind(user.id)
-        .bind(user.login)
-        .bind(user.name)
-        .bind(user.avatar_url)
+        .bind(&user.id)
+        .bind(&user.login)
+        .bind(&user.name)
+        .bind(&user.avatar_url)
         .execute(&mut tx)
         .await
         .unwrap_or_else(|err| {
@@ -118,7 +122,7 @@ impl Github {
             "INSERT OR REPLACE into tokens (token, user_id) VALUES (?, ?)",
         )
         .bind(token)
-        .bind(user.id)
+        .bind(&user.id)
         .execute(&mut tx)
         .await
         .unwrap_or_else(|err| {
@@ -130,6 +134,7 @@ impl Github {
         });
         println!("  user and token have been set!");
 
+        cb(&user);
         Ok(())
     }
 

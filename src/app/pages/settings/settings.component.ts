@@ -7,7 +7,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { invoke } from "@tauri-apps/api";
-import { take, timer } from "rxjs";
+import { TauriService } from "src/app/shared/services/tauri.service";
 
 @Component({
   selector: "ghd-settings",
@@ -26,7 +26,7 @@ export class SettingsComponent implements OnInit {
 
   private apiToken: string = "";
 
-  public constructor() {}
+  public constructor(private tauriSvc: TauriService) {}
 
   public ngOnInit(): void {
     this.refreshToken();
@@ -37,19 +37,25 @@ export class SettingsComponent implements OnInit {
       return;
     }
     const newToken = this.apiTokenFormControl.value;
-    const p = <Promise<boolean>>invoke("set_api_token", { token: newToken });
-    p.then((res: boolean) => {
-      this.tokenIsValidated = true;
-      if (!res) {
-        console.error("Unable to set api token!");
+    this.tauriSvc
+      .set_token(newToken)
+      .then((res: boolean) => {
+        this.tokenIsValidated = true;
+        if (!res) {
+          console.error("Unable to set api token!");
+          this.errorSettingToken = true;
+          this.successSettingToken = false;
+          this.refreshToken();
+        } else {
+          this.successSettingToken = true;
+          this.errorSettingToken = false;
+        }
+      })
+      .catch((err) => {
+        console.error("Error setting token: ", err);
         this.errorSettingToken = true;
         this.successSettingToken = false;
-        this.refreshToken();
-      } else {
-        this.successSettingToken = true;
-        this.errorSettingToken = false;
-      }
-    });
+      });
   }
 
   public canSaveToken(): boolean {
@@ -74,13 +80,15 @@ export class SettingsComponent implements OnInit {
   }
 
   private refreshToken() {
-    const p = <Promise<string>>invoke("get_api_token");
-    p.then((res: string) => {
-      this.apiToken = res;
-      this.apiTokenFormControl.setValue(this.apiToken);
-    }).finally(() => {
-      this.isLoading = false;
-    });
+    this.tauriSvc
+      .get_token()
+      .then((res: string) => {
+        this.apiToken = res;
+        this.apiTokenFormControl.setValue(this.apiToken);
+      })
+      .finally(() => {
+        this.isLoading = false;
+      });
   }
 }
 

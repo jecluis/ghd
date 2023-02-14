@@ -24,6 +24,10 @@ import {
   TauriService,
 } from "src/app/shared/services/tauri.service";
 import { invoke } from "@tauri-apps/api";
+import {
+  GithubService,
+  UsersMap,
+} from "src/app/shared/services/github.service";
 
 type GithubUser = {
   id: number;
@@ -40,16 +44,20 @@ type GithubUser = {
 export class DashboardComponent
   implements OnInit, OnDestroy, TauriEventListener
 {
+  public isAvailable = false;
   public iterationN = 0;
   public prs: PREntry[] = [];
   public user?: GithubUser;
 
   private prSubscription?: Subscription;
+  private availSubscription?: Subscription;
+  private usersSubscription?: Subscription;
 
   public constructor(
     private zone: NgZone,
     private tauriSvc: TauriService,
     private prSvc: PullRequestsService,
+    private ghSvc: GithubService,
   ) {}
 
   public ngOnInit(): void {
@@ -59,25 +67,33 @@ export class DashboardComponent
         this.prs = entries;
       },
     });
-    invoke("get_user")
-      .then((res) => {
-        console.log("user: ", res);
-        this.zone.run(() => {
-          this.user = <GithubUser>res;
-        });
-      })
-      .catch(() => {
-        console.log("user not defined");
-        this.zone.run(() => {
-          this.user = undefined;
-        });
-      });
+
+    this.availSubscription = this.ghSvc.getAvailable().subscribe({
+      next: (res: boolean) => {
+        this.isAvailable = res;
+      },
+    });
+    this.usersSubscription = this.ghSvc.getUsers().subscribe({
+      next: (res: UsersMap) => {
+        let mainUser = this.ghSvc.getMainUser();
+        if (!mainUser) {
+          return;
+        }
+        this.user = res[mainUser];
+      },
+    });
   }
 
   public ngOnDestroy(): void {
     this.tauriSvc.unregister(TauriService.events.ITERATION, this);
     if (!!this.prSubscription) {
       this.prSubscription.unsubscribe();
+    }
+    if (!!this.availSubscription) {
+      this.availSubscription.unsubscribe();
+    }
+    if (!!this.usersSubscription) {
+      this.usersSubscription.unsubscribe();
     }
   }
 

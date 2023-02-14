@@ -13,7 +13,9 @@
 // limitations under the License.
 
 import { Injectable } from "@angular/core";
+import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
+import { GithubUser } from "../types";
 
 export type TauriListenerEvent = {
   name: string;
@@ -32,6 +34,8 @@ export class TauriService {
   public static events = {
     ITERATION: "iteration",
     PULL_REQUESTS_UPDATE: "pull_requests_update",
+    USER_UPDATE: "user_update",
+    TOKEN_SET: "token_set",
   };
 
   private listeners: Map<string, Map<string, TauriEventListener>>;
@@ -81,5 +85,17 @@ export class TauriService {
     }
     const listenerID = listener.getListenerID();
     listenerMap.delete(listenerID);
+  }
+
+  public get_user(): Promise<GithubUser> {
+    return invoke("get_user");
+  }
+
+  public get_token(): Promise<string> {
+    return invoke("get_token");
+  }
+
+  public set_token(token: string): Promise<boolean> {
+    return invoke("set_token", { token: token });
   }
 }

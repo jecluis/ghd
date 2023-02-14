@@ -23,6 +23,7 @@ mod bg;
 mod config;
 mod db;
 mod errors;
+mod events;
 mod gh;
 mod gh_types;
 mod paths;
@@ -41,8 +42,9 @@ impl ManagedState {
 }
 
 #[tauri::command]
-async fn set_api_token(
+async fn set_token(
     token: String,
+    window: tauri::Window,
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<bool, ()> {
     println!("set token to {}", token);
@@ -51,14 +53,20 @@ async fn set_api_token(
 
     let db = &state.db;
     let gh = &state.gh;
-    match gh.set_token(&db, &token).await {
+    match gh
+        .set_token(&db, &token, |user| {
+            events::emit_token_set(&window);
+            events::emit_user_update(&window, &user);
+        })
+        .await
+    {
         Ok(_) => Ok(true),
         Err(_) => Ok(false),
     }
 }
 
 #[tauri::command]
-async fn get_api_token(
+async fn get_token(
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<String, ()> {
     let state = &mstate.state().await;
@@ -122,9 +130,7 @@ async fn main() {
             }),
         })
         .invoke_handler(tauri::generate_handler![
-            set_api_token,
-            get_api_token,
-            get_user
+            set_token, get_token, get_user
         ])
         .setup(|app| {
             let handle = app.app_handle();
