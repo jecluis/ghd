@@ -21,14 +21,16 @@ limitations under the License.
     <ul class="nav nav-pills nav-flush flex-column mb-auto text-center mt-3">
 
       <li class="nav-item">
-        <a class="nav-link active py-2 border-bottom rounded-0">
+        <a class="nav-link py-2 border-bottom rounded-0"
+           (click)="selectUser(user)" [class.active]="isSelected(user)">
           <img class="rounded-circle" src="{{user?.avatar_url}}"
                style="width: 36px; height: 36px" />
         </a>
       </li>
 
       <li class="nav-item" *ngFor="let tracked of trackedUsers">
-        <a class="nav-link py-2 border-bottom rounded-0">
+        <a class="nav-link py-2 border-bottom rounded-0"
+           (click)="selectUser(tracked)" [class.active]="isSelected(tracked)">
           <img class="rounded-circle" src="{{tracked.avatar_url}}"
                style="width: 36px; height: 36px;" />
         </a>
@@ -42,33 +44,15 @@ limitations under the License.
     </div>
   </div>
 
-  <div class="mt-3 mx-3">
+  <div class="mt-3 mx-3 w-100">
 
     <div class="mt-3" *ngIf="!isAvailable">
       <h4>Dashboard not available until a valid token is set.</h4>
     </div>
 
-    <div class="card p-3" *ngIf="isAvailable">
+    <ghd-dashboard-view *ngIf="!!selectedUser"
+                        [user]="selectedUser"></ghd-dashboard-view>
 
-      <p>dashboard</p>
 
-      <p>iteration: {{iteration}}</p>
-      <p>available: {{isAvailable}}</p>
-
-      <div>
-        <div>
-          <p>User: {{user?.login}}</p>
-          <p>Name: {{user?.name}}</p>
-          <p>Avatar: <img src="{{user?.avatar_url}}" /></p>
-        </div>
-
-        <p>PRs:</p>
-        <ul>
-          <li *ngFor="let entry of prs">
-            <span>{{entry.id}} {{entry.title}} {{entry.age_str}}</span>
-          </li>
-        </ul>
-      </div>
-    </div>
   </div>
 </div>

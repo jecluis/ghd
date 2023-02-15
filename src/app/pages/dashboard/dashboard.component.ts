@@ -47,31 +47,19 @@ export class DashboardComponent
   implements OnInit, OnDestroy, TauriEventListener
 {
   public isAvailable = false;
-  public iterationN = 0;
-  public prs: PREntry[] = [];
   public user?: GithubUser;
   public trackedUsers: GithubUser[] = [];
+  public selectedUser?: GithubUser;
 
-  private prSubscription?: Subscription;
   private availSubscription?: Subscription;
   private usersSubscription?: Subscription;
 
   public constructor(
-    private zone: NgZone,
     private modalSvc: NgbModal,
-    private tauriSvc: TauriService,
-    private prSvc: PullRequestsService,
     private ghSvc: GithubService,
   ) {}
 
   public ngOnInit(): void {
-    this.tauriSvc.register(TauriService.events.ITERATION, this);
-    this.prSubscription = this.prSvc.getPullRequests().subscribe({
-      next: (entries: PREntry[]) => {
-        this.prs = entries;
-      },
-    });
-
     this.availSubscription = this.ghSvc.getAvailable().subscribe({
       next: (res: boolean) => {
         this.isAvailable = res;
@@ -92,15 +80,15 @@ export class DashboardComponent
           userlst.push(res[login]);
         });
         this.trackedUsers = userlst;
+        if (!this.selectedUser) {
+          this.selectedUser = this.user;
+          console.log("select default user: ", this.selectedUser);
+        }
       },
     });
   }
 
   public ngOnDestroy(): void {
-    this.tauriSvc.unregister(TauriService.events.ITERATION, this);
-    if (!!this.prSubscription) {
-      this.prSubscription.unsubscribe();
-    }
     if (!!this.availSubscription) {
       this.availSubscription.unsubscribe();
     }
@@ -109,34 +97,26 @@ export class DashboardComponent
     }
   }
 
-  public set iteration(value: number) {
-    this.iterationN = value;
-  }
-
-  public get iteration(): number {
-    return this.iterationN;
-  }
-
   public getListenerID(): string {
     return "dashboard-evlistener";
   }
 
-  public handleEvent(event: TauriListenerEvent): void {
-    const evname = event.name;
-
-    if (evname === TauriService.events.ITERATION) {
-      this.handleIteration(<number>event.payload);
-    } else if (evname === TauriService.events.PULL_REQUESTS_UPDATE) {
-    }
-  }
+  public handleEvent(event: TauriListenerEvent): void {}
 
   public openTrackUserModal(): void {
     this.modalSvc.open(TrackUserModalComponent);
   }
 
-  private handleIteration(n: number) {
-    this.zone.run(() => {
-      this.iterationN = n;
-    });
+  public selectUser(user: GithubUser | undefined): void {
+    this.selectedUser = user;
+  }
+
+  public isSelected(user: GithubUser | undefined): boolean {
+    if (!this.selectedUser) {
+      return false;
+    } else if (!user) {
+      return false;
+    }
+    return this.selectedUser.login === user.login;
   }
 }

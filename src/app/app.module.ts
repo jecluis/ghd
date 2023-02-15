@@ -9,6 +9,7 @@ import { DashboardComponent } from "./pages/dashboard/dashboard.component";
 import { ReactiveFormsModule } from "@angular/forms";
 import { NgbModalModule } from "@ng-bootstrap/ng-bootstrap";
 import { TrackUserModalComponent } from './pages/dashboard/track-user-modal/track-user-modal.component';
+import { DashboardViewComponent } from './pages/dashboard/dashboard-view/dashboard-view.component';
 
 @NgModule({
   declarations: [
@@ -17,6 +18,7 @@ import { TrackUserModalComponent } from './pages/dashboard/track-user-modal/trac
     SettingsComponent,
     DashboardComponent,
     TrackUserModalComponent,
+    DashboardViewComponent,
   ],
   imports: [
     BrowserModule,
