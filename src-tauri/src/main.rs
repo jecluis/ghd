@@ -20,6 +20,7 @@
 use tauri::Manager;
 
 mod bg;
+mod common;
 mod config;
 mod db;
 mod errors;

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use crate::{
+    common,
     db::DB,
     gh::{self, Github},
     ManagedState,
@@ -21,25 +22,11 @@ use tauri::Manager;
 
 mod types;
 
-const PULL_UPDATE_INTERVAL: i64 = 60; // one minute
-
-struct State {
-    last_pull_update: chrono::DateTime<chrono::Utc>,
-    pull_requests: Vec<gh::prs::PullRequestEntry>,
-}
-
-pub struct BGTask {
-    state: State,
-}
+pub struct BGTask {}
 
 impl BGTask {
     pub fn new() -> Self {
-        BGTask {
-            state: State {
-                last_pull_update: chrono::DateTime::<chrono::Utc>::MIN_UTC,
-                pull_requests: Vec::new(),
-            },
-        }
+        BGTask {}
     }
 
     pub async fn run(self: &mut Self, app: tauri::AppHandle) {
@@ -57,75 +44,45 @@ impl BGTask {
             window.emit("iteration", n).unwrap();
             n += 1;
 
-            let token = match self.try_get_token(&gh, &db).await {
-                Ok(t) => {
-                    // println!("token: {}", t);
-                    t
-                }
-                Err(_) => {
-                    self.sleep_for_a_bit().await;
-                    continue;
+            if !has_token(&gh, &db).await {
+                self.sleep_for_a_bit().await;
+                continue;
+            }
+
+            let users = match gh.get_tracked_users(&db).await {
+                Ok(res) => res,
+                Err(err) => {
+                    panic!("Unable to obtain tracked users: {:?}", err);
                 }
             };
 
-            if self.maybe_get_prs(&gh, &token).await {
-                self.emit_prs_update(&window);
+            for user in &users {
+                if gh.should_refresh_user(&db, &user.login).await {
+                    match gh.refresh_user(&db, &user.login).await {
+                        Ok(()) => {}
+                        Err(err) => {
+                            println!(
+                                "error refreshing user '{}': {:?}",
+                                &user.login, err
+                            );
+                        }
+                    }
+                }
             }
 
             self.sleep_for_a_bit().await;
         }
     }
 
-    async fn try_get_token(
-        self: &Self,
-        gh: &Github,
-        db: &DB,
-    ) -> Result<String, ()> {
-        let t = get_token(&gh, &db).await;
-        if !t.is_empty() {
-            return Ok(t.clone());
-        }
-        Err(())
-    }
-
     async fn sleep_for_a_bit(self: &Self) {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
 
-    async fn maybe_get_prs(
-        self: &mut Self,
-        gh: &Github,
-        token: &String,
-    ) -> bool {
-        if !has_expired(&self.state.last_pull_update, PULL_UPDATE_INTERVAL) {
-            return false;
-        }
-
-        self.state.last_pull_update = chrono::Utc::now();
-        match gh.get_pulls(token).await {
-            Err(err) => {
-                println!("Error obtaining pull requests: {}", err);
-                match err {
-                    reqwest::StatusCode::UNAUTHORIZED => {
-                        println!("bad token!");
-                    }
-                    _ => {}
-                };
-                return false;
-            }
-            Ok(prs) => {
-                println!("success obtaining pull requests!");
-                self.state.pull_requests = prs;
-                return true;
-            }
-        };
-    }
-
-    fn emit_prs_update(self: &Self, window: &tauri::Window) {
-        let prlist = get_pull_requests(&self.state.pull_requests);
-        print_pull_requests(&prlist);
-        window.emit("pull_requests_update", &prlist).unwrap();
-    }
+    // fn emit_prs_update(self: &Self, window: &tauri::Window) {
+    //     let prlist = get_pull_requests(&self.state.pull_requests);
+    //     print_pull_requests(&prlist);
+    //     window.emit("pull_requests_update", &prlist).unwrap();
+    // }
 }
 
 async fn get_token(gh: &Github, db: &DB) -> String {
@@ -135,21 +92,18 @@ async fn get_token(gh: &Github, db: &DB) -> String {
     }
 }
 
-fn has_expired(t: &chrono::DateTime<chrono::Utc>, secs: i64) -> bool {
-    let now = chrono::Utc::now();
-    let dt = match t.checked_add_signed(chrono::Duration::seconds(secs)) {
-        Some(v) => v,
-        None => now,
-    };
-    return dt < now;
+async fn has_token(gh: &Github, db: &DB) -> bool {
+    match &gh.get_token(&db).await {
+        Ok(_) => true,
+        Err(_) => false,
+    }
 }
 
 fn get_pull_requests(prs: &Vec<gh::prs::PullRequestEntry>) -> types::PRList {
     let mut prlist = types::PRList::default();
 
     for pr in prs {
-        let created =
-            chrono::DateTime::parse_from_rfc3339(&pr.created_at).unwrap();
+        let created = common::ts_to_datetime(pr.created_at).unwrap();
         let diff = chrono::Utc::now().signed_duration_since(created);
 
         let secs = diff.num_seconds();

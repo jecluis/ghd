@@ -12,12 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::gh::types::GithubUser;
+use crate::gh::{prs::PullRequestEntry, types::GithubUser};
 
 pub const EV_ITERATION: &str = "iteration";
 pub const EV_PULL_REQUESTS_UPDATE: &str = "pull_requests_update";
 pub const EV_USER_UPDATE: &str = "user_update";
 pub const EV_TOKEN_SET: &str = "token_set";
+
+#[derive(serde::Serialize, Clone)]
+struct PullRequestUpdatePayload<'a> {
+    user: &'a GithubUser,
+    prs: &'a Vec<PullRequestEntry>,
+}
 
 pub fn emit<S>(w: &tauri::Window, ev: &str, payload: S)
 where
@@ -33,4 +39,21 @@ pub fn emit_token_set(w: &tauri::Window) {
 pub fn emit_user_update(w: &tauri::Window, user: &GithubUser) {
     println!("emit user update for {}", user.login);
     emit(w, EV_USER_UPDATE, user);
+}
+
+pub fn emit_pull_request_update(
+    w: &tauri::Window,
+    user: &GithubUser,
+    prs: &Vec<PullRequestEntry>,
+) {
+    println!(
+        "emit pull request update for {} ({} entries)",
+        user.login,
+        prs.len()
+    );
+    emit(
+        w,
+        EV_PULL_REQUESTS_UPDATE,
+        PullRequestUpdatePayload { user, prs },
+    );
 }

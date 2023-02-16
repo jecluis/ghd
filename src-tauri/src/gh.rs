@@ -14,15 +14,22 @@
 
 use sqlx::Row;
 
-use crate::{db::DB, errors::GHDError};
+use crate::{
+    common::{self, datetime_to_ts},
+    db::DB,
+    errors::GHDError,
+};
 
 use self::{
     prs::PullRequestEntry,
     types::{GithubRequest, GithubUser, GithubUserReply},
 };
 
+pub mod api;
 pub mod prs;
 pub mod types;
+
+const USER_REFRESH_INTERVAL: i64 = 60;
 
 pub struct Github {}
 
@@ -123,6 +130,14 @@ impl Github {
         .unwrap_or_else(|err| {
             panic!("Error inserting token into database: {}", err);
         });
+
+        sqlx::query("INSERT into user_refresh (id, refresh_at) VALUES (?, -1)")
+            .bind(&user.id)
+            .execute(&mut tx)
+            .await
+            .unwrap_or_else(|err| {
+                panic!("Error inserting user into refresh table: {}", err);
+            });
 
         tx.commit().await.unwrap_or_else(|err| {
             panic!("Unable to commit transaction to set token: {}", err);
@@ -253,12 +268,156 @@ impl Github {
         }
     }
 
-    pub async fn get_pulls(
+    pub async fn refresh_user(
         self: &Self,
-        token: &String,
-    ) -> Result<Vec<PullRequestEntry>, reqwest::StatusCode> {
-        let user = String::from("jecluis");
-        prs::get(token, &user).await
+        db: &DB,
+        login: &String,
+    ) -> Result<(), GHDError> {
+        // obtain user; if DNE, return error.
+        let user = match self.get_user_by_login(&db, &login).await {
+            Ok(res) => res,
+            Err(err) => return Err(err),
+        };
+
+        // obtain pull requests by author
+        let prs = match prs::fetch_by_author(&db, &self, &login).await {
+            Ok(res) => res,
+            Err(err) => return Err(err),
+        };
+
+        let mut tx = match db.pool().begin().await {
+            Ok(res) => res,
+            Err(err) => {
+                panic!("Error starting transaction to update PRs: {}", err);
+            }
+        };
+
+        for pr in &prs {
+            let created_at = pr.created_at;
+            let updated_at = pr.updated_at;
+            let merged_at = match pr.merged_at {
+                Some(v) => v,
+                None => -1,
+            };
+            let closed_at = match pr.closed_at {
+                Some(v) => v,
+                None => -1,
+            };
+
+            match sqlx::query(
+                "
+                INSERT OR REPLACE into pull_request (
+                    id, title, author, created_at,
+                    updated_at, closed_at, merged_at, comments
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?
+                )
+                ",
+            )
+            .bind(&pr.id)
+            .bind(&pr.title)
+            .bind(&pr.author)
+            .bind(created_at)
+            .bind(updated_at)
+            .bind(closed_at)
+            .bind(merged_at)
+            .bind(&pr.comments)
+            .execute(&mut tx)
+            .await
+            {
+                Ok(_) => {}
+                Err(err) => {
+                    panic!("Unable to update PR: {}", err);
+                }
+            };
+        }
+
+        let now = chrono::Utc::now().timestamp();
+        match sqlx::query(
+            "
+            INSERT OR REPLACE into user_refresh (id, refresh_at)
+            VALUES (?, ?)
+            ",
+        )
+        .bind(&user.id)
+        .bind(&now)
+        .execute(&mut tx)
+        .await
+        {
+            Ok(_) => {}
+            Err(err) => {
+                panic!("Unable to update user '{}' refresh: {}", login, err);
+            }
+        };
+
+        tx.commit().await.unwrap_or_else(|err| {
+            panic!("Unable to commit transaction to update PRs: {}", err);
+        });
+
+        Ok(())
+    }
+
+    pub async fn get_user_refresh(
+        self: &Self,
+        db: &DB,
+        login: &String,
+    ) -> Result<chrono::DateTime<chrono::Utc>, GHDError> {
+        let user = match self.get_user_by_login(&db, &login).await {
+            Ok(res) => res,
+            Err(err) => return Err(err),
+        };
+
+        match sqlx::query_scalar::<_, i64>(
+            "SELECT refresh_at FROM user_refresh WHERE id = ?",
+        )
+        .bind(&user.id)
+        .fetch_one(db.pool())
+        .await
+        {
+            Ok(res) => {
+                // if < 0, never refreshed; how do we convey that? Error?
+                if res <= 0 {
+                    return Err(GHDError::NeverRefreshedError);
+                }
+                Ok(common::ts_to_datetime(res).unwrap())
+            }
+            Err(_) => Err(GHDError::UserNotFoundError),
+        }
+    }
+
+    pub async fn should_refresh_user(
+        self: &Self,
+        db: &DB,
+        login: &String,
+    ) -> bool {
+        match self.get_user_refresh(&db, &login).await {
+            Ok(val) => {
+                return common::has_expired(&val, USER_REFRESH_INTERVAL);
+            }
+            Err(GHDError::NeverRefreshedError) => {
+                return true;
+            }
+            Err(GHDError::UserNotFoundError) => {
+                println!("Unable to find user '{}' to refresh!", login);
+                return false;
+            }
+            Err(err) => {
+                panic!("Unknown error while checking refresh user: {:?}", err);
+            }
+        };
+    }
+
+    pub async fn get_pulls_by_author(
+        self: &Self,
+        db: &DB,
+        login: &String,
+    ) -> Result<Vec<PullRequestEntry>, GHDError> {
+        let token = match self.get_token(&db).await {
+            Ok(res) => res,
+            Err(err) => return Err(err),
+        };
+
+        prs::get_by_author(&db, &self, &login).await
     }
 }
 

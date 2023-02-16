@@ -18,5 +18,6 @@ pub enum GHDError {
     BadTokenError,
     UserNotSetError,
     UserNotFoundError,
+    NeverRefreshedError,
     UnknownError,
 }

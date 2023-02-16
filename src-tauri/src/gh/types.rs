@@ -53,7 +53,19 @@ impl GithubRequest {
             return Err(req.status());
         }
 
-        Ok(req.json::<T>().await.unwrap())
+        let txt = req.text().await.unwrap();
+        println!("res: {}", txt);
+
+        let res: T = serde_json::from_str(&txt).unwrap();
+
+        // let res = match req.json::<T>().await {
+        //     Ok(v) => v,
+        //     Err(err) => {
+        //         println!("Error: {}", err);
+        //         return Err(reqwest::StatusCode::INTERNAL_SERVER_ERROR);
+        //     }
+        // };
+        Ok(res)
     }
 }
 

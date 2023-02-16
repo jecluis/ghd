@@ -71,13 +71,13 @@ async fn create_db_schema(uri: &str) -> Result<SqliteQueryResult, sqlx::Error> {
         value       TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS users (
-        id          INTEGER PRIMARY KEY,
+        id          INTEGER PRIMARY KEY NOT NULL,
         login       TEXT UNIQUE NOT NULL,
         avatar_url  TEXT NOT NULL,
         name        TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS pull_request (
-        id          INTEGER PRIMARY KEY,
+        id          INTEGER PRIMARY KEY NOT NULL,
         title       TEXT NOT NULL,
         author      TEXT NOT NULL,
         created_at  INTEGER,
@@ -86,8 +86,13 @@ async fn create_db_schema(uri: &str) -> Result<SqliteQueryResult, sqlx::Error> {
         merged_at   INTEGER,
         comments    INTEGER
     );
+    CREATE TABLE IF NOT EXISTS user_refresh (
+        id          INTEGER PRIMARY KEY NOT NULL,
+        refresh_at  INTEGER,
+        FOREIGN KEY(id) REFERENCES users(id)
+    );
     CREATE TABLE IF NOT EXISTS tokens (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        id          INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         token       TEXT NOT NULL,
         user_id     INTEGER,
         UNIQUE(token, user_id)

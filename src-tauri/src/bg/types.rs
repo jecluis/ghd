@@ -14,7 +14,7 @@
 
 #[derive(serde::Serialize)]
 pub struct PREntry {
-    pub id: u64,
+    pub id: i64,
     pub title: String,
     pub age_str: String,
 }
