@@ -104,21 +104,7 @@ impl Github {
             }
         };
 
-        sqlx::query(
-            "
-            INSERT OR REPLACE into users (id, login, name, avatar_url)
-            VALUES (?, ?, ?, ?)
-            ",
-        )
-        .bind(&user.id)
-        .bind(&user.login)
-        .bind(&user.name)
-        .bind(&user.avatar_url)
-        .execute(&mut tx)
-        .await
-        .unwrap_or_else(|err| {
-            panic!("Error inserting user into database: {}", err);
-        });
+        add_user_to_db(&mut tx, &user).await;
 
         sqlx::query(
             "INSERT OR REPLACE into tokens (token, user_id) VALUES (?, ?)",
@@ -130,14 +116,6 @@ impl Github {
         .unwrap_or_else(|err| {
             panic!("Error inserting token into database: {}", err);
         });
-
-        sqlx::query("INSERT into user_refresh (id, refresh_at) VALUES (?, -1)")
-            .bind(&user.id)
-            .execute(&mut tx)
-            .await
-            .unwrap_or_else(|err| {
-                panic!("Error inserting user into refresh table: {}", err);
-            });
 
         tx.commit().await.unwrap_or_else(|err| {
             panic!("Unable to commit transaction to set token: {}", err);
@@ -238,29 +216,7 @@ impl Github {
             }
         };
 
-        sqlx::query(
-            "
-            INSERT INTO users (id, login, name, avatar_url)
-            VALUES (?, ?, ?, ?)
-            ",
-        )
-        .bind(&user.id)
-        .bind(&user.login)
-        .bind(&user.name)
-        .bind(&user.avatar_url)
-        .execute(&mut tx)
-        .await
-        .unwrap_or_else(|err| {
-            panic!("Error inserting new user entry into database: {}", err);
-        });
-
-        sqlx::query("INSERT into user_refresh (id, refresh_at) VALUES (?, -1)")
-            .bind(&user.id)
-            .execute(&mut tx)
-            .await
-            .unwrap_or_else(|err| {
-                panic!("Error inserting user into refresh table: {}", err);
-            });
+        add_user_to_db(&mut tx, &user).await;
 
         tx.commit().await.unwrap_or_else(|err| {
             panic!("Unable to commit transaction to track new user: {}", err);
@@ -467,4 +423,33 @@ async fn get_user_by_login(
         Ok(res) => Ok(res),
         Err(_) => Err(GHDError::UserNotFoundError),
     }
+}
+
+async fn add_user_to_db(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    user: &GithubUser,
+) {
+    sqlx::query(
+        "
+        INSERT OR REPLACE into users (id, login, name, avatar_url)
+        VALUES (?, ?, ?, ?)
+        ",
+    )
+    .bind(&user.id)
+    .bind(&user.login)
+    .bind(&user.name)
+    .bind(&user.avatar_url)
+    .execute(&mut *tx)
+    .await
+    .unwrap_or_else(|err| {
+        panic!("Error inserting user into database: {}", err);
+    });
+
+    sqlx::query("INSERT into user_refresh (id, refresh_at) VALUES (?, -1)")
+        .bind(&user.id)
+        .execute(&mut *tx)
+        .await
+        .unwrap_or_else(|err| {
+            panic!("Error inserting user into refresh table: {}", err);
+        });
 }
