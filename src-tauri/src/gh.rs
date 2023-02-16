@@ -231,6 +231,13 @@ impl Github {
             Err(err) => return Err(err),
         };
 
+        let mut tx = match db.pool().begin().await {
+            Ok(res) => res,
+            Err(err) => {
+                panic!("Error starting transaction to track user: {}", err);
+            }
+        };
+
         sqlx::query(
             "
             INSERT INTO users (id, login, name, avatar_url)
@@ -241,10 +248,22 @@ impl Github {
         .bind(&user.login)
         .bind(&user.name)
         .bind(&user.avatar_url)
-        .execute(db.pool())
+        .execute(&mut tx)
         .await
         .unwrap_or_else(|err| {
-            panic!("Unable to commit new user entry to database: {}", err);
+            panic!("Error inserting new user entry into database: {}", err);
+        });
+
+        sqlx::query("INSERT into user_refresh (id, refresh_at) VALUES (?, -1)")
+            .bind(&user.id)
+            .execute(&mut tx)
+            .await
+            .unwrap_or_else(|err| {
+                panic!("Error inserting user into refresh table: {}", err);
+            });
+
+        tx.commit().await.unwrap_or_else(|err| {
+            panic!("Unable to commit transaction to track new user: {}", err);
         });
 
         cb(&user);
