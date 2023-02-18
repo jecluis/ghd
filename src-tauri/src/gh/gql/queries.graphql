@@ -1,0 +1,53 @@
+query UserInfo($login: String!) {
+  user(login: $login) {
+    name
+    login
+    avatarUrl
+    databaseId
+    pullRequests(first: 30, states: OPEN) {
+      nodes {
+        title
+        number
+        databaseId
+        totalCommentsCount
+        createdAt
+        updatedAt
+        isDraft
+        milestone {
+          id
+        }
+        repository {
+          owner {
+            __typename
+            login
+          }
+          name
+        }
+        reviewDecision
+        reviews(first: 1) {
+          totalCount
+        }
+      }
+    }
+    issues(first: 30, states: OPEN) {
+      nodes {
+        title
+        number
+        databaseId
+        updatedAt
+        author {
+          __typename
+          login
+        }
+        participants(first: 1) {
+          totalCount
+        }
+        assignees(first: 10) {
+          nodes {
+            login
+          }
+        }
+      }
+    }
+  }
+}

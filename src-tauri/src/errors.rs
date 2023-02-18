@@ -19,5 +19,6 @@ pub enum GHDError {
     UserNotSetError,
     UserNotFoundError,
     NeverRefreshedError,
+    BadRequest,
     UnknownError,
 }

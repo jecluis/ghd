@@ -32,6 +32,7 @@ impl BGTask {
     pub async fn run(self: &mut Self, app: tauri::AppHandle) {
         let window = app.get_window("main").unwrap();
         let mstate = app.try_state::<ManagedState>().unwrap();
+        let mut has_info = std::collections::HashMap::new();
 
         let mut n = 1;
         loop {
@@ -39,6 +40,10 @@ impl BGTask {
             let db = &state.db;
             let _cfg = &state.config;
             let gh = &state.gh;
+
+            // temporarily keep gql stuff here, move to github later
+            let token = get_token(&gh, &db).await;
+            let gql = gh::gql::GithubGQLRequest::new(&token);
 
             println!("background task iteration #{}", n);
             window.emit("iteration", n).unwrap();
@@ -58,6 +63,13 @@ impl BGTask {
 
             for user in &users {
                 if gh.should_refresh_user(&db, &user.login).await {
+                    // obtain gql stuff
+                    if !has_info.contains_key(&user.login) {
+                        let res = gql.get_user_info(&user.login).await;
+                        println!(">> {}: {:?}", user.login, res);
+                        has_info.insert(user.login.clone(), true);
+                    }
+
                     match gh.refresh_user(&db, &user.login).await {
                         Ok(()) => {}
                         Err(err) => {
@@ -66,7 +78,7 @@ impl BGTask {
                                 &user.login, err
                             );
                         }
-                    }
+                    };
                 }
             }
 

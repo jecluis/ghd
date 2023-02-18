@@ -26,6 +26,7 @@ use self::{
 };
 
 pub mod api;
+pub mod gql;
 pub mod prs;
 pub mod types;
 
