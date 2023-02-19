@@ -85,6 +85,15 @@ async fn get_prs_from_db(
     }
 }
 
+/// Inserts into the database the Pull Requests provided in the `prs` Vector.
+/// This operation is performed as part of a larger transaction, for which a
+/// handle should be provided by the caller.
+///
+/// # Arguments
+///
+/// * `tx` - A database transaction handle.
+/// * `prs` - A Vector containing the Pull Requests to be added to the database.
+///
 pub async fn consume_prs(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     prs: &Vec<PullRequestEntry>,
