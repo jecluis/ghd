@@ -12,78 +12,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub struct GithubRequest {
-    client: reqwest::Client,
-    token: String,
-}
-
-impl GithubRequest {
-    pub fn new(token: &String) -> Self {
-        GithubRequest {
-            client: reqwest::Client::new(),
-            token: token.clone(),
-        }
-    }
-
-    pub fn get(self: &Self, endpoint: &str) -> reqwest::RequestBuilder {
-        let ep = match endpoint.strip_prefix("/") {
-            Some(res) => res,
-            None => endpoint,
-        };
-
-        self.client.get(format!("https://api.github.com/{}", ep))
-    }
-
-    pub async fn send<'a, T>(
-        self: &Self,
-        rb: reqwest::RequestBuilder,
-    ) -> Result<T, reqwest::StatusCode>
-    where
-        T: for<'de> serde::Deserialize<'de>,
-    {
-        let req = rb
-            .bearer_auth(&self.token)
-            .header("User-Agent", "GHD")
-            .header("Accept", "application/vnd.github+json")
-            .send()
-            .await
-            .unwrap();
-
-        if req.status() != reqwest::StatusCode::OK {
-            return Err(req.status());
-        }
-
-        let txt = req.text().await.unwrap();
-        println!("res: {}", txt);
-
-        let res: T = serde_json::from_str(&txt).unwrap();
-
-        // let res = match req.json::<T>().await {
-        //     Ok(v) => v,
-        //     Err(err) => {
-        //         println!("Error: {}", err);
-        //         return Err(reqwest::StatusCode::INTERNAL_SERVER_ERROR);
-        //     }
-        // };
-        Ok(res)
-    }
-}
-
 // Users
 
-#[derive(serde::Deserialize)]
-pub struct GithubUserReply {
-    pub login: String,
-    pub id: i64,
-    pub node_id: String,
-    pub avatar_url: String,
-    pub name: String,
-}
+use super::api;
 
+/// Describes a user, as it is kept in the database.
+///
 #[derive(sqlx::FromRow, serde::Serialize)]
 pub struct GithubUser {
     pub id: i64,
     pub login: String,
     pub name: String,
     pub avatar_url: String,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, sqlx::FromRow)]
+pub struct PullRequestEntry {
+    pub id: i64,
+    pub author: String,
+    pub author_id: i64,
+    pub url: String,
+    pub html_url: String,
+    pub number: i64,
+    pub title: String,
+    pub repo_owner: String,
+    pub repo_name: String,
+    pub state: String,
+    pub is_draft: bool,
+    pub milestone: Option<String>,
+    pub comments: i64,
+    pub created_at: i64,
+    pub updated_at: i64,
+    pub closed_at: Option<i64>,
+    pub merged_at: Option<i64>,
+}
+
+impl PullRequestEntry {
+    pub fn from_api_entry(entry: &api::PullRequestSearchAPIEntry) -> Self {
+        PullRequestEntry {
+            id: entry.id,
+            author: entry.user.login.clone(),
+            author_id: entry.user.id,
+            url: entry.url.clone(),
+            html_url: entry.html_url.clone(),
+            number: entry.number,
+            title: entry.title.clone(),
+            repo_owner: String::new(),
+            repo_name: String::new(),
+            state: entry.state.clone(),
+            is_draft: entry.draft,
+            milestone: match &entry.milestone {
+                Some(m) => Some(m.title.clone()),
+                None => None,
+            },
+            comments: entry.comments,
+            created_at: entry.created_at.timestamp(),
+            updated_at: entry.updated_at.timestamp(),
+            closed_at: match entry.closed_at {
+                Some(dt) => Some(dt.timestamp()),
+                None => None,
+            },
+            merged_at: match entry.pull_request.merged_at {
+                Some(dt) => Some(dt.timestamp()),
+                None => None,
+            },
+        }
+    }
+}
+
+#[derive(serde::Deserialize, serde::Serialize, sqlx::FromRow)]
+pub struct IssueEntry {
+    pub id: i64,
+    pub title: String,
+    pub number: i64,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub author: String,
+    pub participants: i64,
+    pub assignees: Vec<String>,
+}
+
+pub struct GithubUserInfo {
+    pub user: GithubUser,
+    pub prs: Vec<PullRequestEntry>,
+    pub issues: Vec<IssueEntry>,
 }

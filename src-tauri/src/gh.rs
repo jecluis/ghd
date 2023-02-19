@@ -14,43 +14,34 @@
 
 use sqlx::Row;
 
-use crate::{
-    common::{self, datetime_to_ts},
-    db::DB,
-    errors::GHDError,
-};
+use crate::{db::DB, errors::GHDError};
 
-use self::{
-    prs::PullRequestEntry,
-    types::{GithubRequest, GithubUser, GithubUserReply},
-};
+use self::types::{GithubUser, PullRequestEntry};
 
 pub mod api;
 pub mod gql;
 pub mod prs;
+pub mod refresh;
+pub mod rest;
 pub mod types;
-
-const USER_REFRESH_INTERVAL: i64 = 60;
+pub mod users;
 
 pub struct Github {}
 
 impl Github {
+    /// Obtain new Github instance.
+    ///
     pub fn new() -> Self {
         Github {}
     }
 
-    pub async fn whoami(
-        self: &Self,
-        token: &String,
-    ) -> Result<GithubUser, reqwest::StatusCode> {
-        let ghreq = GithubRequest::new(token);
-        let req = ghreq.get("/user");
-        match ghreq.send::<GithubUserReply>(req).await {
-            Ok(res) => Ok(to_user(res)),
-            Err(err) => Err(err),
-        }
-    }
-
+    /// Obtain token from the database, if exists. Returns a String if the token
+    /// exists, or a `GHDError::TokenNotFoundError` otherwise.
+    ///
+    /// # Arguments
+    ///
+    /// * `db` - The GHD Database handle.
+    ///
     pub async fn get_token(self: &Self, db: &DB) -> Result<String, GHDError> {
         let val: Result<sqlx::sqlite::SqliteRow, sqlx::Error> = sqlx::query(
             "
@@ -74,6 +65,16 @@ impl Github {
         }
     }
 
+    /// Set the API Token to be used by GHD. Expects a callback function as
+    /// argument, which will be called once the token is properly persisted on
+    /// disk.
+    ///
+    /// # Arguments
+    ///
+    /// * `db` - The GHD Database handle.
+    /// * `token` - String containing the API Token to persist.
+    /// * `cb` - Callback function to be called once the Token is persisted.
+    ///
     pub async fn set_token<F>(
         self: &Self,
         db: &DB,
@@ -85,7 +86,7 @@ impl Github {
     {
         println!("setting token {}", token);
         println!("  obtaining user for token");
-        let user: GithubUser = match self.whoami(token).await {
+        let user: GithubUser = match users::whoami(token).await {
             Ok(res) => res,
             Err(err) => {
                 return match err {
@@ -105,7 +106,7 @@ impl Github {
             }
         };
 
-        add_user_to_db(&mut tx, &user).await;
+        users::add_user_to_db(&mut tx, &user).await;
 
         sqlx::query(
             "INSERT OR REPLACE into tokens (token, user_id) VALUES (?, ?)",
@@ -123,46 +124,26 @@ impl Github {
         });
         println!("  user and token have been set!");
 
+        self.populate_user(&db, &user.login).await.unwrap();
+
         cb(&user);
         Ok(())
     }
 
-    pub async fn get_user(
-        self: &Self,
-        db: &DB,
-    ) -> Result<GithubUser, GHDError> {
-        let val: GithubUser = match sqlx::query_as::<_, GithubUser>(
-            "
-            SELECT id, login, name, avatar_url
-            FROM users
-            WHERE id = (
-                SELECT user_id FROM tokens
-                WHERE id = (SELECT MAX(id) FROM tokens)
-            )
-            ",
-        )
-        .fetch_one(db.pool())
-        .await
-        {
-            Ok(res) => {
-                println!("has user: {}", res.login);
-                res
-            }
-            Err(_) => {
-                println!("no user found!");
-                return Err(GHDError::UserNotSetError);
-            }
-        };
-
-        Ok(val)
-    }
-
+    /// Obtain user by their login. First tries the database, and will fallback
+    /// to a REST call if the user cannot be found in the database.
+    ///
+    /// # Arguments
+    ///
+    /// * `db` - The GHD Database handle.
+    /// * `login` - String containing the login to obtain.
+    ///
     pub async fn get_user_by_login(
         self: &Self,
         db: &DB,
         login: &String,
     ) -> Result<GithubUser, GHDError> {
-        match get_user_by_login(&db, &login).await {
+        match users::get_user_by_login(&db, &login).await {
             Ok(res) => return Ok(res),
             Err(_) => {}
         };
@@ -172,11 +153,11 @@ impl Github {
             Err(err) => return Err(err),
         };
 
-        let ghreq = GithubRequest::new(&token);
+        let ghreq = rest::GithubRequest::new(&token);
         let reqstr = format!("/users/{}", login);
         let req = ghreq.get(&reqstr);
-        match ghreq.send::<GithubUserReply>(req).await {
-            Ok(res) => return Ok(to_user(res)),
+        match ghreq.send::<rest::GithubUserReply>(req).await {
+            Ok(res) => return Ok(users::user_reply_to_user(res)),
             Err(err) => {
                 return match err {
                     reqwest::StatusCode::NOT_FOUND => {
@@ -188,6 +169,19 @@ impl Github {
         }
     }
 
+    /// Track the specified user by their login. Will first check the database
+    /// to ascertain whether the user is already being tracked; if so, return
+    /// the existing user. Otherwise, will obtain the user via a REST call. If
+    /// the user is ultimately added to the database, will callback the provided
+    /// function once the data is persisted.
+    ///
+    /// # Arguments
+    ///
+    /// * `db` - The GHD Database handle.
+    /// * `login` - String containing the user login to be tracked.
+    /// * `cb` - Callback function that will be called if a new user is added
+    ///   and the data has been persisted.
+    ///
     pub async fn track_user<F>(
         self: &Self,
         db: &DB,
@@ -197,7 +191,7 @@ impl Github {
     where
         F: FnOnce(&GithubUser),
     {
-        match get_user_by_login(&db, &login).await {
+        match users::get_user_by_login(&db, &login).await {
             Ok(res) => {
                 println!("user {} already exists!", login);
                 return Ok(res);
@@ -217,117 +211,89 @@ impl Github {
             }
         };
 
-        add_user_to_db(&mut tx, &user).await;
+        users::add_user_to_db(&mut tx, &user).await;
 
         tx.commit().await.unwrap_or_else(|err| {
             panic!("Unable to commit transaction to track new user: {}", err);
         });
 
+        self.populate_user(&db, &user.login).await.unwrap();
+
         cb(&user);
         Ok(user)
     }
 
-    pub async fn get_tracked_users(
-        self: &Self,
-        db: &DB,
-    ) -> Result<Vec<GithubUser>, GHDError> {
-        match sqlx::query_as::<_, GithubUser>(
-            "
-            SELECT id, login, name, avatar_url FROM users
-            ",
-        )
-        .fetch_all(db.pool())
-        .await
-        {
-            Ok(res) => Ok(res),
-            Err(_) => Err(GHDError::UnknownError),
-        }
-    }
-
-    pub async fn refresh_user(
+    /// Populate the database for a newly-added user.
+    ///
+    /// # Arguments
+    ///
+    /// * `db` - The GHD Database handle.
+    /// * `login` - String containing the login of the user to populate.
+    ///
+    pub async fn populate_user(
         self: &Self,
         db: &DB,
         login: &String,
     ) -> Result<(), GHDError> {
-        // obtain user; if DNE, return error.
-        let user = match self.get_user_by_login(&db, &login).await {
-            Ok(res) => res,
-            Err(err) => return Err(err),
+        // sanity checks: user exists in the database, and last update was
+        // never.
+        let user = match users::get_user_by_login(&db, &login).await {
+            Ok(u) => u,
+            Err(GHDError::UserNotFoundError) => {
+                panic!(
+                    "Trying to populate a user that is not in the database: {}",
+                    login
+                );
+            }
+            Err(err) => {
+                panic!("Unexpected error: {:?}", err);
+            }
+        };
+        match refresh::get_user_refresh(&db, &user.id).await {
+            Ok(_) => {
+                panic!("User has been previously updated: {}", login);
+            }
+            Err(GHDError::NeverRefreshedError) => {}
+            Err(err) => {
+                panic!("Unexpected error: {:?}", err);
+            }
         };
 
-        // obtain pull requests by author
-        let prs = match prs::fetch_by_author(&db, &self, &login).await {
-            Ok(res) => res,
-            Err(err) => return Err(err),
+        // obtain user information through GraphQL API
+        let token: String = match self.get_token(&db).await {
+            Ok(t) => t.clone(),
+            Err(_) => {
+                panic!("Token not set!");
+            }
+        };
+
+        let res = match gql::get_user_info(&token, &login).await {
+            Ok(info) => info,
+            Err(err) => {
+                panic!("Unexpected error populating user from GQL: {:?}", err);
+            }
         };
 
         let mut tx = match db.pool().begin().await {
             Ok(res) => res,
             Err(err) => {
-                panic!("Error starting transaction to update PRs: {}", err);
+                panic!("Error starting transaction to populate user: {}", err);
             }
         };
 
-        for pr in &prs {
-            let created_at = pr.created_at;
-            let updated_at = pr.updated_at;
-            let merged_at = match pr.merged_at {
-                Some(v) => v,
-                None => -1,
-            };
-            let closed_at = match pr.closed_at {
-                Some(v) => v,
-                None => -1,
-            };
-
-            match sqlx::query(
-                "
-                INSERT OR REPLACE into pull_request (
-                    id, title, author, created_at,
-                    updated_at, closed_at, merged_at, comments
-                ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?
-                )
-                ",
-            )
-            .bind(&pr.id)
-            .bind(&pr.title)
-            .bind(&pr.author)
-            .bind(created_at)
-            .bind(updated_at)
-            .bind(closed_at)
-            .bind(merged_at)
-            .bind(&pr.comments)
-            .execute(&mut tx)
-            .await
-            {
-                Ok(_) => {}
-                Err(err) => {
-                    panic!("Unable to update PR: {}", err);
-                }
-            };
+        if let Err(err) = prs::consume_prs(&mut tx, &res.prs).await {
+            panic!(
+                "Error consuming pull requests when populating user: {:?}",
+                err
+            );
         }
-
-        let now = chrono::Utc::now().timestamp();
-        match sqlx::query(
-            "
-            INSERT OR REPLACE into user_refresh (id, refresh_at)
-            VALUES (?, ?)
-            ",
-        )
-        .bind(&user.id)
-        .bind(&now)
-        .execute(&mut tx)
-        .await
-        {
-            Ok(_) => {}
-            Err(err) => {
-                panic!("Unable to update user '{}' refresh: {}", login, err);
-            }
-        };
+        users::update_user_refresh(&mut tx, &res.user.id).await;
 
         tx.commit().await.unwrap_or_else(|err| {
-            panic!("Unable to commit transaction to update PRs: {}", err);
+            panic!(
+                "Unable to commit populate transaction for user '{}': {}",
+                res.user.login, err
+            );
         });
 
         Ok(())
@@ -343,44 +309,7 @@ impl Github {
             Err(err) => return Err(err),
         };
 
-        match sqlx::query_scalar::<_, i64>(
-            "SELECT refresh_at FROM user_refresh WHERE id = ?",
-        )
-        .bind(&user.id)
-        .fetch_one(db.pool())
-        .await
-        {
-            Ok(res) => {
-                // if < 0, never refreshed; how do we convey that? Error?
-                if res <= 0 {
-                    return Err(GHDError::NeverRefreshedError);
-                }
-                Ok(common::ts_to_datetime(res).unwrap())
-            }
-            Err(_) => Err(GHDError::UserNotFoundError),
-        }
-    }
-
-    pub async fn should_refresh_user(
-        self: &Self,
-        db: &DB,
-        login: &String,
-    ) -> bool {
-        match self.get_user_refresh(&db, &login).await {
-            Ok(val) => {
-                return common::has_expired(&val, USER_REFRESH_INTERVAL);
-            }
-            Err(GHDError::NeverRefreshedError) => {
-                return true;
-            }
-            Err(GHDError::UserNotFoundError) => {
-                println!("Unable to find user '{}' to refresh!", login);
-                return false;
-            }
-            Err(err) => {
-                panic!("Unknown error while checking refresh user: {:?}", err);
-            }
-        };
+        return refresh::get_user_refresh(&db, &user.id).await;
     }
 
     pub async fn get_pulls_by_author(
@@ -395,62 +324,4 @@ impl Github {
 
         prs::get_by_author(&db, &self, &login).await
     }
-}
-
-fn to_user(res: GithubUserReply) -> GithubUser {
-    GithubUser {
-        login: res.login,
-        id: res.id,
-        avatar_url: res.avatar_url,
-        name: res.name,
-    }
-}
-
-async fn get_user_by_login(
-    db: &DB,
-    login: &String,
-) -> Result<GithubUser, GHDError> {
-    match sqlx::query_as::<_, GithubUser>(
-        "
-        SELECT id, login, name, avatar_url
-        FROM users
-        WHERE login = ?
-        ",
-    )
-    .bind(&login)
-    .fetch_one(db.pool())
-    .await
-    {
-        Ok(res) => Ok(res),
-        Err(_) => Err(GHDError::UserNotFoundError),
-    }
-}
-
-async fn add_user_to_db(
-    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
-    user: &GithubUser,
-) {
-    sqlx::query(
-        "
-        INSERT OR REPLACE into users (id, login, name, avatar_url)
-        VALUES (?, ?, ?, ?)
-        ",
-    )
-    .bind(&user.id)
-    .bind(&user.login)
-    .bind(&user.name)
-    .bind(&user.avatar_url)
-    .execute(&mut *tx)
-    .await
-    .unwrap_or_else(|err| {
-        panic!("Error inserting user into database: {}", err);
-    });
-
-    sqlx::query("INSERT into user_refresh (id, refresh_at) VALUES (?, -1)")
-        .bind(&user.id)
-        .execute(&mut *tx)
-        .await
-        .unwrap_or_else(|err| {
-            panic!("Error inserting user into refresh table: {}", err);
-        });
 }

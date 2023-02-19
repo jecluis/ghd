@@ -14,55 +14,7 @@
 
 use crate::{db::DB, errors::GHDError};
 
-use super::{api, types::GithubRequest, Github};
-
-#[derive(serde::Deserialize, serde::Serialize, sqlx::FromRow)]
-pub struct PullRequestEntry {
-    pub id: i64,
-    pub author: String,
-    pub url: String,
-    pub html_url: String,
-    pub number: i64,
-    pub title: String,
-    pub state: String,
-    pub draft: bool,
-    pub milestone: Option<String>,
-    pub comments: i32,
-    pub created_at: i64,
-    pub updated_at: i64,
-    pub closed_at: Option<i64>,
-    pub merged_at: Option<i64>,
-}
-
-impl PullRequestEntry {
-    pub fn from_api_entry(entry: &api::PullRequestSearchAPIEntry) -> Self {
-        PullRequestEntry {
-            id: entry.id,
-            author: entry.user.login.clone(),
-            url: entry.url.clone(),
-            html_url: entry.html_url.clone(),
-            number: entry.number,
-            title: entry.title.clone(),
-            state: entry.state.clone(),
-            draft: entry.draft,
-            milestone: match &entry.milestone {
-                Some(m) => Some(m.title.clone()),
-                None => None,
-            },
-            comments: entry.comments,
-            created_at: entry.created_at.timestamp(),
-            updated_at: entry.updated_at.timestamp(),
-            closed_at: match entry.closed_at {
-                Some(dt) => Some(dt.timestamp()),
-                None => None,
-            },
-            merged_at: match entry.pull_request.merged_at {
-                Some(dt) => Some(dt.timestamp()),
-                None => None,
-            },
-        }
-    }
-}
+use super::{api, rest::GithubRequest, types::PullRequestEntry, Github};
 
 #[derive(serde::Deserialize)]
 pub struct PullRequestSearchResult {
@@ -107,14 +59,7 @@ pub async fn get_by_author(
     gh: &Github,
     login: &String,
 ) -> Result<Vec<PullRequestEntry>, GHDError> {
-    if gh.should_refresh_user(&db, &login).await {
-        match gh.refresh_user(&db, &login).await {
-            Ok(_) => {}
-            Err(err) => {
-                return Err(err);
-            }
-        };
-    }
+    if super::refresh::should_refresh_user(&db, &login).await {}
 
     match get_prs_from_db(&db, &login).await {
         Ok(res) => Ok(res),
@@ -138,4 +83,49 @@ async fn get_prs_from_db(
             panic!("Unable to obtain pull requests from db: {}", err);
         }
     }
+}
+
+pub async fn consume_prs(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    prs: &Vec<PullRequestEntry>,
+) -> Result<(), GHDError> {
+    println!("consuming {} pull requests", prs.len());
+    for pr in prs {
+        match sqlx::query(
+            "
+            INSERT OR REPLACE INTO pull_request (
+                id, number, title, author, author_id, repo_owner, repo_name,
+                is_draft, created_at, updated_at, closed_at, merged_at, 
+                comments
+            ) VALUES (
+                ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?,
+                ?
+            )
+            ",
+        )
+        .bind(&pr.id)
+        .bind(&pr.number)
+        .bind(&pr.title)
+        .bind(&pr.author)
+        .bind(&pr.author_id)
+        .bind(&pr.repo_owner)
+        .bind(&pr.repo_name)
+        .bind(&pr.is_draft)
+        .bind(&pr.created_at)
+        .bind(&pr.updated_at)
+        .bind(&pr.closed_at)
+        .bind(&pr.merged_at)
+        .bind(&pr.comments)
+        .execute(&mut *tx)
+        .await
+        {
+            Ok(_) => {}
+            Err(err) => {
+                panic!("Unable to consume pull request: {}", err);
+            }
+        };
+    }
+
+    Ok(())
 }

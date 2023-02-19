@@ -70,7 +70,7 @@ export class GithubService implements TauriEventListener {
       }
     });
     this.tauriSvc
-      .getUser()
+      .getMainUser()
       .then((res: GithubUser) => {
         this.users[res.login] = res;
         this.mainUser = res.login;

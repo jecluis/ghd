@@ -20,12 +20,14 @@ use queries::{user_info, UserInfo};
 
 use crate::errors::GHDError;
 
+use super::types::{GithubUser, GithubUserInfo, IssueEntry, PullRequestEntry};
+
 #[derive(serde::Deserialize, Debug)]
 struct GQLResData<T> {
     pub data: T,
 }
 
-pub struct GithubGQLRequest {
+struct GithubGQLRequest {
     client: reqwest::Client,
 }
 
@@ -131,4 +133,96 @@ impl GithubGQLRequest {
 
         response_data
     }
+}
+
+/// Obtain user information from GraphQL API.
+///
+/// # Arguments
+/// * `token` - String containing the token to be used for authentication.
+/// * `login` - String containing the login to obtain infos for.
+///
+pub async fn get_user_info(
+    token: &String,
+    login: &String,
+) -> Result<GithubUserInfo, GHDError> {
+    let res = GithubGQLRequest::new(&token).get_user_info(&login).await;
+    let user = match &res.user {
+        Some(v) => v,
+        None => {
+            return Err(GHDError::UserNotFoundError);
+        }
+    };
+
+    let mut prlst: Vec<PullRequestEntry> = vec![];
+    let mut issuelst: Vec<IssueEntry> = vec![];
+
+    if let Some(n) = &user.pull_requests.nodes {
+        for entry in n {
+            if let Some(pr) = entry {
+                prlst.push(PullRequestEntry {
+                    id: pr.database_id.unwrap_or(-1),
+                    title: pr.title.clone(),
+                    number: pr.number,
+                    author: user.login.clone(),
+                    author_id: user.database_id.unwrap_or(-1),
+                    html_url: String::new(),
+                    url: String::new(),
+                    repo_name: pr.repository.name.clone(),
+                    repo_owner: pr.repository.owner.login.clone(),
+                    state: String::from("open"),
+                    is_draft: pr.is_draft,
+                    milestone: None,
+                    comments: pr.total_comments_count.unwrap_or(0),
+                    created_at: pr.created_at.timestamp(),
+                    updated_at: pr.updated_at.timestamp(),
+                    closed_at: None,
+                    merged_at: None,
+                });
+            }
+        }
+    }
+
+    if let Some(n) = &user.issues.nodes {
+        for entry in n {
+            if let Some(issue) = entry {
+                issuelst.push(IssueEntry {
+                    id: issue.database_id.unwrap_or(-1),
+                    title: issue.title.clone(),
+                    number: issue.number,
+                    updated_at: issue.updated_at,
+                    author: match &issue.author {
+                        None => String::new(),
+                        Some(author) => author.login.clone(),
+                    },
+                    participants: issue.participants.total_count,
+                    assignees: match &issue.assignees.nodes {
+                        None => vec![],
+                        Some(v) => {
+                            let mut lst: Vec<String> = vec![];
+                            for e in v {
+                                if let Some(assignee) = e {
+                                    lst.push(assignee.login.clone());
+                                }
+                            }
+                            lst
+                        }
+                    },
+                });
+            }
+        }
+    }
+
+    Ok(GithubUserInfo {
+        user: GithubUser {
+            id: user.database_id.unwrap_or(-1),
+            login: user.login.clone(),
+            name: match &user.name {
+                Some(v) => v.clone(),
+                None => String::new(),
+            },
+            avatar_url: user.avatar_url.clone(),
+        },
+        prs: prlst,
+        issues: issuelst,
+    })
 }

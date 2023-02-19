@@ -32,7 +32,6 @@ impl BGTask {
     pub async fn run(self: &mut Self, app: tauri::AppHandle) {
         let window = app.get_window("main").unwrap();
         let mstate = app.try_state::<ManagedState>().unwrap();
-        let mut has_info = std::collections::HashMap::new();
 
         let mut n = 1;
         loop {
@@ -40,10 +39,6 @@ impl BGTask {
             let db = &state.db;
             let _cfg = &state.config;
             let gh = &state.gh;
-
-            // temporarily keep gql stuff here, move to github later
-            let token = get_token(&gh, &db).await;
-            let gql = gh::gql::GithubGQLRequest::new(&token);
 
             println!("background task iteration #{}", n);
             window.emit("iteration", n).unwrap();
@@ -54,7 +49,7 @@ impl BGTask {
                 continue;
             }
 
-            let users = match gh.get_tracked_users(&db).await {
+            let users = match gh::users::get_tracked_users(&db).await {
                 Ok(res) => res,
                 Err(err) => {
                     panic!("Unable to obtain tracked users: {:?}", err);
@@ -62,24 +57,7 @@ impl BGTask {
             };
 
             for user in &users {
-                if gh.should_refresh_user(&db, &user.login).await {
-                    // obtain gql stuff
-                    if !has_info.contains_key(&user.login) {
-                        let res = gql.get_user_info(&user.login).await;
-                        println!(">> {}: {:?}", user.login, res);
-                        has_info.insert(user.login.clone(), true);
-                    }
-
-                    match gh.refresh_user(&db, &user.login).await {
-                        Ok(()) => {}
-                        Err(err) => {
-                            println!(
-                                "error refreshing user '{}': {:?}",
-                                &user.login, err
-                            );
-                        }
-                    };
-                }
+                if gh::refresh::should_refresh_user(&db, &user.login).await {}
             }
 
             self.sleep_for_a_bit().await;
@@ -89,12 +67,6 @@ impl BGTask {
     async fn sleep_for_a_bit(self: &Self) {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
-
-    // fn emit_prs_update(self: &Self, window: &tauri::Window) {
-    //     let prlist = get_pull_requests(&self.state.pull_requests);
-    //     print_pull_requests(&prlist);
-    //     window.emit("pull_requests_update", &prlist).unwrap();
-    // }
 }
 
 async fn get_token(gh: &Github, db: &DB) -> String {
@@ -111,7 +83,7 @@ async fn has_token(gh: &Github, db: &DB) -> bool {
     }
 }
 
-fn get_pull_requests(prs: &Vec<gh::prs::PullRequestEntry>) -> types::PRList {
+fn get_pull_requests(prs: &Vec<gh::types::PullRequestEntry>) -> types::PRList {
     let mut prlist = types::PRList::default();
 
     for pr in prs {
@@ -144,10 +116,4 @@ fn get_pull_requests(prs: &Vec<gh::prs::PullRequestEntry>) -> types::PRList {
     }
 
     prlist
-}
-
-fn print_pull_requests(prs: &types::PRList) {
-    for pr in &prs.entries {
-        println!("{:>5}  {}  ({} ago)", pr.id, pr.title, pr.age_str);
-    }
 }

@@ -87,8 +87,8 @@ export class TauriService {
     listenerMap.delete(listenerID);
   }
 
-  public getUser(): Promise<GithubUser> {
-    return invoke("get_user");
+  public getMainUser(): Promise<GithubUser> {
+    return invoke("get_main_user");
   }
 
   public getToken(): Promise<string> {

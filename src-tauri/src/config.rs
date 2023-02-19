@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use sqlx::Row;
-
-use crate::db::DB;
-
 #[derive(Debug)]
 pub enum ConfigError {
     SettingNotFoundError,

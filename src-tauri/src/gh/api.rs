@@ -55,7 +55,7 @@ pub struct PullRequestSearchAPIEntry {
     pub state: String,
     pub assignees: Option<Vec<GithubAPIUser>>,
     pub milestone: Option<GithubAPIMilestone>,
-    pub comments: i32,
+    pub comments: i64,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
     pub closed_at: Option<chrono::DateTime<chrono::Utc>>,

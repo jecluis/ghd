@@ -82,13 +82,12 @@ async fn get_token(
 }
 
 #[tauri::command]
-async fn get_user(
+async fn get_main_user(
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<gh::types::GithubUser, ()> {
     let state = &mstate.state().await;
     let db = &state.db;
-    let gh = &state.gh;
-    match gh.get_user(&db).await {
+    match gh::users::get_main_user(&db).await {
         Ok(res) => Ok(res),
         Err(_) => Err(()),
     }
@@ -100,8 +99,7 @@ async fn get_tracked_users(
 ) -> Result<Vec<gh::types::GithubUser>, ()> {
     let state = &mstate.state().await;
     let db = &state.db;
-    let gh = &state.gh;
-    match gh.get_tracked_users(&db).await {
+    match gh::users::get_tracked_users(&db).await {
         Ok(res) => Ok(res),
         Err(_) => Err(()),
     }
@@ -154,7 +152,7 @@ async fn setup_db(path: &std::path::PathBuf) -> db::DB {
     handle
 }
 
-async fn setup_config(db: &db::DB) -> config::Config {
+async fn setup_config() -> config::Config {
     config::Config::default()
 }
 
@@ -162,7 +160,7 @@ async fn setup_config(db: &db::DB) -> config::Config {
 async fn main() {
     let paths = setup_paths().await;
     let db_handle = setup_db(&paths.db_path).await;
-    let cfg = setup_config(&db_handle).await;
+    let cfg = setup_config().await;
 
     println!("  user data dir: {}", paths.data_dir.display());
     println!("user config dir: {}", paths.config_dir.display());
@@ -182,7 +180,7 @@ async fn main() {
         .invoke_handler(tauri::generate_handler![
             set_token,
             get_token,
-            get_user,
+            get_main_user,
             get_tracked_users,
             add_tracked_user,
             check_user_exists,

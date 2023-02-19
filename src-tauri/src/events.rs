@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::gh::{prs::PullRequestEntry, types::GithubUser};
+use crate::gh::{types::GithubUser, types::PullRequestEntry};
 
 pub const EV_ITERATION: &str = "iteration";
 pub const EV_PULL_REQUESTS_UPDATE: &str = "pull_requests_update";
