@@ -317,11 +317,21 @@ impl Github {
         db: &DB,
         login: &String,
     ) -> Result<Vec<PullRequestEntry>, GHDError> {
-        let token = match self.get_token(&db).await {
-            Ok(res) => res,
-            Err(err) => return Err(err),
-        };
-
         prs::get_by_author(&db, &self, &login).await
+    }
+
+    /// Marks a specified Pull Request as having been viewed.
+    ///
+    /// # Arguments
+    ///
+    /// * `db` - A GHD Database handle.
+    /// * `prid` - The Pull Request's database ID.
+    ///
+    pub async fn mark_pull_request_viewed(
+        self: &Self,
+        db: &DB,
+        prid: &i64,
+    ) -> Result<(), GHDError> {
+        prs::mark_viewed(&db, &prid).await
     }
 }

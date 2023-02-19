@@ -29,12 +29,12 @@ pub struct GithubUser {
 #[derive(serde::Deserialize, serde::Serialize, sqlx::FromRow)]
 pub struct PullRequestEntry {
     pub id: i64,
+    pub number: i64,
+    pub title: String,
     pub author: String,
     pub author_id: i64,
     pub url: String,
     pub html_url: String,
-    pub number: i64,
-    pub title: String,
     pub repo_owner: String,
     pub repo_name: String,
     pub state: String,
@@ -45,6 +45,7 @@ pub struct PullRequestEntry {
     pub updated_at: i64,
     pub closed_at: Option<i64>,
     pub merged_at: Option<i64>,
+    pub last_viewed: Option<i64>,
 }
 
 impl PullRequestEntry {
@@ -76,6 +77,7 @@ impl PullRequestEntry {
                 Some(dt) => Some(dt.timestamp()),
                 None => None,
             },
+            last_viewed: None,
         }
     }
 }

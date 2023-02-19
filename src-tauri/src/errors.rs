@@ -21,4 +21,5 @@ pub enum GHDError {
     NeverRefreshedError,
     BadRequest,
     UnknownError,
+    NotFoundError,
 }

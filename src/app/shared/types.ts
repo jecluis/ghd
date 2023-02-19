@@ -18,3 +18,24 @@ export type GithubUser = {
   name: string;
   avatar_url: string;
 };
+
+export type PullRequestEntry = {
+  id: number;
+  author: string;
+  author_id: string;
+  url: string;
+  html_url: string;
+  number: number;
+  title: string;
+  repo_owner: string;
+  repo_name: string;
+  state: string;
+  is_draft: boolean;
+  milestone?: string;
+  comments: number;
+  created_at: number;
+  updated_at: number;
+  closed_at?: number;
+  merged_at?: number;
+  last_viewed?: number;
+};

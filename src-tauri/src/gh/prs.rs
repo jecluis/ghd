@@ -72,7 +72,7 @@ async fn get_prs_from_db(
     login: &String,
 ) -> Result<Vec<PullRequestEntry>, GHDError> {
     match sqlx::query_as::<_, PullRequestEntry>(
-        "SELECT * FROM pull_requests WHERE login = ?",
+        "SELECT * FROM pull_request WHERE author = ?",
     )
     .bind(login)
     .fetch_all(db.pool())
@@ -94,13 +94,15 @@ pub async fn consume_prs(
         match sqlx::query(
             "
             INSERT OR REPLACE INTO pull_request (
-                id, number, title, author, author_id, repo_owner, repo_name,
-                is_draft, created_at, updated_at, closed_at, merged_at, 
-                comments
+                id, number, title, author, author_id, url, html_url,
+                repo_owner, repo_name, state, is_draft, milestone,
+                created_at, updated_at, closed_at, merged_at, 
+                comments, last_viewed
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
-                ?
+                ?, ?, ?, ?,
+                ?, ?
             )
             ",
         )
@@ -109,14 +111,19 @@ pub async fn consume_prs(
         .bind(&pr.title)
         .bind(&pr.author)
         .bind(&pr.author_id)
+        .bind(&pr.url)
+        .bind(&pr.html_url)
         .bind(&pr.repo_owner)
         .bind(&pr.repo_name)
+        .bind(&pr.state)
         .bind(&pr.is_draft)
+        .bind(&pr.milestone)
         .bind(&pr.created_at)
         .bind(&pr.updated_at)
         .bind(&pr.closed_at)
         .bind(&pr.merged_at)
         .bind(&pr.comments)
+        .bind(&pr.last_viewed)
         .execute(&mut *tx)
         .await
         {
@@ -126,6 +133,34 @@ pub async fn consume_prs(
             }
         };
     }
+
+    Ok(())
+}
+
+/// Marks a specified Pull Request as having been viewed.
+///
+/// # Arguments
+///
+/// * `db` - A GHD Database handle.
+/// * `prid` - The Pull Request's database ID.
+///
+pub async fn mark_viewed(db: &DB, prid: &i64) -> Result<(), GHDError> {
+    let now = chrono::Utc::now().timestamp();
+
+    match sqlx::query("UPDATE pull_request SET last_viewed = ? WHERE id = ?")
+        .bind(&now)
+        .bind(&prid)
+        .execute(db.pool())
+        .await
+    {
+        Ok(_) => {}
+        Err(sqlx::Error::RowNotFound) => {
+            return Err(GHDError::NotFoundError);
+        }
+        Err(err) => {
+            panic!("Unexpected error marking pr '{}' viewed: {}", prid, err);
+        }
+    };
 
     Ok(())
 }

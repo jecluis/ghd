@@ -30,3 +30,24 @@ limitations under the License.
 
   </div>
 </div>
+
+<div class="card mt-3">
+  <div class="card-header">
+    <h4 class="card-title">Pull Requests</h4>
+  </div>
+  <div class="card-body">
+    <p *ngFor="let pr of prs">
+      <button type="button" class="btn btn-sm btn-outline-primary"
+              *ngIf="!pr.last_viewed || pr.last_viewed < pr.updated_at"
+              (click)="markViewed(pr)">
+        Mark Viewed
+      </button>
+      {{pr.number}} |
+      {{pr.title}} | {{pr.repo_owner}}/{{pr.repo_name}}
+    </p>
+
+
+
+  </div>
+
+</div>

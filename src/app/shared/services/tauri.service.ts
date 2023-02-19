@@ -15,7 +15,7 @@
 import { Injectable } from "@angular/core";
 import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
-import { GithubUser } from "../types";
+import { GithubUser, PullRequestEntry } from "../types";
 
 export type TauriListenerEvent = {
   name: string;
@@ -109,5 +109,13 @@ export class TauriService {
 
   public getTrackedUsers(): Promise<GithubUser[]> {
     return invoke("get_tracked_users");
+  }
+
+  public markPullRequestViewed(prid: number): Promise<void> {
+    return invoke("pr_mark_viewed", { prid: prid });
+  }
+
+  public getPullRequestsByLogin(login: string): Promise<PullRequestEntry[]> {
+    return invoke("pr_get_list_by_login", { login: login });
   }
 }

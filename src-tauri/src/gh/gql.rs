@@ -177,6 +177,7 @@ pub async fn get_user_info(
                     updated_at: pr.updated_at.timestamp(),
                     closed_at: None,
                     merged_at: None,
+                    last_viewed: None,
                 });
             }
         }

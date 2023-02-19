@@ -141,6 +141,35 @@ async fn check_user_exists(
     }
 }
 
+#[tauri::command]
+async fn pr_mark_viewed(
+    prid: i64,
+    mstate: tauri::State<'_, ManagedState>,
+) -> Result<(), ()> {
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+    match gh.mark_pull_request_viewed(&db, &prid).await {
+        Ok(_) => Ok(()),
+        Err(_) => Err(()),
+    }
+}
+
+#[tauri::command]
+async fn pr_get_list_by_login(
+    login: String,
+    mstate: tauri::State<'_, ManagedState>,
+) -> Result<Vec<gh::types::PullRequestEntry>, ()> {
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+
+    match gh.get_pulls_by_author(&db, &login).await {
+        Ok(res) => Ok(res),
+        Err(_) => Err(()),
+    }
+}
+
 async fn setup_paths() -> paths::Paths {
     paths::Paths::default().init().await
 }
@@ -184,6 +213,8 @@ async fn main() {
             get_tracked_users,
             add_tracked_user,
             check_user_exists,
+            pr_mark_viewed,
+            pr_get_list_by_login,
         ])
         .setup(|app| {
             let handle = app.app_handle();

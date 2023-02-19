@@ -82,14 +82,19 @@ async fn create_db_schema(uri: &str) -> Result<SqliteQueryResult, sqlx::Error> {
         title       TEXT NOT NULL,
         author      TEXT NOT NULL,
         author_id   INTEGER NOT NULL,
+        url         TEXT NOT NULL,
+        html_url    TEXT NOT NULL,
         repo_owner  TEXT NOT NULL,
         repo_name   TEXT NOT NULL,
+        state       TEXT NOT NULL,
         is_draft    BOOL NOT NULL,
+        milestone   TEXT,
         created_at  INTEGER NOT NULL,
         updated_at  INTEGER NOT NULL,
         closed_at   INTEGER,
         merged_at   INTEGER,
         comments    INTEGER NOT NULL,
+        last_viewed INTEGER,
         FOREIGN KEY(author_id) REFERENCES users(id)
     );
     CREATE TABLE IF NOT EXISTS user_refresh (
