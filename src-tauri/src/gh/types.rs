@@ -98,3 +98,9 @@ pub struct GithubUserInfo {
     pub prs: Vec<PullRequestEntry>,
     pub issues: Vec<IssueEntry>,
 }
+
+pub struct GithubUserUpdate {
+    pub when: chrono::DateTime<chrono::Utc>,
+    pub prs: Vec<PullRequestEntry>,
+    pub issues: Vec<IssueEntry>,
+}

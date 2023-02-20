@@ -51,3 +51,55 @@ query UserInfo($login: String!) {
     }
   }
 }
+
+query SearchIssues($q: String!) {
+  search(first: 100, query: $q, type: ISSUE) {
+    nodes {
+      __typename
+      ... on PullRequest {
+        title
+        number
+        databaseId
+        author {
+          __typename
+          ... on User {
+            login
+            databaseId
+          }
+        }
+        repository {
+          owner {
+            __typename
+            login
+          }
+          name
+        }
+        url
+        state
+        isDraft
+        totalCommentsCount
+        createdAt
+        updatedAt
+        closedAt
+        mergedAt
+        reviewDecision
+        reviews(first: 1) {
+          totalCount
+        }
+      }
+      ... on Issue {
+        title
+        number
+        databaseId
+        updatedAt
+        repository {
+          owner {
+            __typename
+            login
+          }
+          name
+        }
+      }
+    }
+  }
+}

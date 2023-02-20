@@ -49,6 +49,22 @@ impl BGTask {
                 continue;
             }
 
+            let to_refresh = gh::refresh::get_to_refresh_users(&db).await;
+            for user in &to_refresh {
+                println!("should refresh user '{}'", user.login);
+                match gh.refresh_user(&db, &user.login).await {
+                    Ok(_) => {
+                        println!("refreshed user '{}'", user.login);
+                    }
+                    Err(err) => {
+                        println!(
+                            "error refreshing user '{}': {:?}",
+                            user.login, err,
+                        );
+                    }
+                }
+            }
+
             let users = match gh::users::get_tracked_users(&db).await {
                 Ok(res) => res,
                 Err(err) => {

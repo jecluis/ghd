@@ -173,3 +173,56 @@ pub async fn mark_viewed(db: &DB, prid: &i64) -> Result<(), GHDError> {
 
     Ok(())
 }
+
+/// Update on-disk pull requests data with the values being provided in the Pull
+/// Request Vector `prs`.
+///
+/// # Arguments
+///
+/// * `tx` - A database transaction handle.
+/// * `prs` - A Vector containing the Pull Requests to be updated.
+///
+pub async fn update_prs(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    prs: &Vec<PullRequestEntry>,
+) -> Result<(), GHDError> {
+    for pr in prs {
+        match sqlx::query(
+            "
+            UPDATE pull_request
+            SET
+                title = ?,
+                state = ?,
+                is_draft = ?,
+                milestone = ?,
+                updated_at = ?,
+                closed_at = ?,
+                merged_at = ?,
+                comments = ?
+            WHERE
+                id = ?
+            ",
+        )
+        .bind(&pr.title)
+        .bind(&pr.state)
+        .bind(&pr.is_draft)
+        .bind(&pr.milestone)
+        .bind(&pr.updated_at)
+        .bind(&pr.closed_at)
+        .bind(&pr.merged_at)
+        .bind(&pr.comments)
+        .bind(&pr.id)
+        .execute(&mut *tx)
+        .await
+        {
+            Ok(_) => {}
+            Err(err) => {
+                panic!(
+                    "Unable to update pull request id '{}': {}",
+                    &pr.id, err
+                );
+            }
+        };
+    }
+    Ok(())
+}

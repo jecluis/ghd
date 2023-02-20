@@ -20,7 +20,17 @@ use queries::{user_info, UserInfo};
 
 use crate::errors::GHDError;
 
-use super::types::{GithubUser, GithubUserInfo, IssueEntry, PullRequestEntry};
+use self::queries::{
+    search_issues::{
+        self, PullRequestState, SearchIssuesSearchNodes,
+        SearchIssuesSearchNodesOnPullRequestAuthor,
+    },
+    SearchIssues,
+};
+
+use super::types::{
+    GithubUser, GithubUserInfo, GithubUserUpdate, IssueEntry, PullRequestEntry,
+};
 
 #[derive(serde::Deserialize, Debug)]
 struct GQLResData<T> {
@@ -133,6 +143,27 @@ impl GithubGQLRequest {
 
         response_data
     }
+
+    pub async fn get_user_update(
+        self: &Self,
+        login: &String,
+        since: &String,
+    ) -> search_issues::ResponseData {
+        let vars = search_issues::Variables {
+            q: format!("author:{} updated:>{}", login, since),
+        };
+        let response_data: search_issues::ResponseData = match self
+            .execute::<SearchIssues, search_issues::ResponseData>(vars)
+            .await
+        {
+            Ok(res) => res,
+            Err(err) => {
+                panic!("error: {:?}", err);
+            }
+        };
+
+        response_data
+    }
 }
 
 /// Obtain user information from GraphQL API.
@@ -223,6 +254,102 @@ pub async fn get_user_info(
             },
             avatar_url: user.avatar_url.clone(),
         },
+        prs: prlst,
+        issues: issuelst,
+    })
+}
+
+/// Obtain Pull Request and Issue updates for provided `login` since the
+/// provided date `since`.
+///
+/// # Arguments
+///
+/// * `token` - String containing the Github API Token.
+/// * `login` - String containing the user to obtain an update for.
+/// * `since` - Date since which updates should be looked for.
+///
+pub async fn get_user_updates(
+    token: &String,
+    login: &String,
+    since: &chrono::DateTime<chrono::Utc>,
+) -> Result<GithubUserUpdate, GHDError> {
+    let since_str = since.to_rfc3339();
+    let res = GithubGQLRequest::new(&token)
+        .get_user_update(&login, &since_str)
+        .await;
+
+    let nodes = match &res.search.nodes {
+        None => {
+            panic!("Unexpected null nodes for user update!");
+        }
+        Some(v) => v,
+    };
+
+    let mut prlst: Vec<PullRequestEntry> = vec![];
+    let mut issuelst: Vec<IssueEntry> = vec![];
+
+    for n in nodes {
+        match &n {
+            None => {}
+            Some(SearchIssuesSearchNodes::PullRequest(entry)) => {
+                let (user_name, user_id) = match &entry.author {
+                    None => {
+                        panic!("author not defined for pull request!");
+                    }
+                    Some(SearchIssuesSearchNodesOnPullRequestAuthor::User(
+                        user,
+                    )) => (user.login.clone(), user.database_id.unwrap_or(-1)),
+                    Some(_) => {
+                        panic!("unexpected author user type!");
+                    }
+                };
+                println!(
+                    "update pr id: {}, updated_at: {}, ts: {}",
+                    entry.database_id.unwrap_or(-1),
+                    entry.updated_at,
+                    entry.updated_at.timestamp()
+                );
+                prlst.push(PullRequestEntry {
+                    id: entry.database_id.unwrap_or(-1),
+                    title: entry.title.clone(),
+                    number: entry.number,
+                    author: user_name.clone(),
+                    author_id: user_id,
+                    html_url: String::new(),
+                    url: entry.url.clone(),
+                    repo_name: entry.repository.name.clone(),
+                    repo_owner: entry.repository.owner.login.clone(),
+                    state: match &entry.state {
+                        PullRequestState::OPEN => String::from("open"),
+                        PullRequestState::CLOSED => String::from("closed"),
+                        PullRequestState::MERGED => String::from("merged"),
+                        PullRequestState::Other(v) => v.clone(),
+                    },
+                    is_draft: entry.is_draft,
+                    milestone: None,
+                    comments: entry.total_comments_count.unwrap_or(0),
+                    created_at: entry.created_at.timestamp(),
+                    updated_at: entry.updated_at.timestamp(),
+                    closed_at: match &entry.closed_at {
+                        None => None,
+                        Some(v) => Some(v.timestamp()),
+                    },
+                    merged_at: match &entry.merged_at {
+                        None => None,
+                        Some(v) => Some(v.timestamp()),
+                    },
+                    last_viewed: None,
+                });
+            }
+            Some(SearchIssuesSearchNodes::Issue(entry)) => {}
+            Some(_) => {
+                panic!("unexpected node type!");
+            }
+        }
+    }
+
+    Ok(GithubUserUpdate {
+        when: chrono::Utc::now(),
         prs: prlst,
         issues: issuelst,
     })

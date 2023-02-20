@@ -14,7 +14,7 @@
 
 use sqlx::Row;
 
-use crate::{db::DB, errors::GHDError};
+use crate::{common, db::DB, errors::GHDError};
 
 use self::types::{GithubUser, PullRequestEntry};
 
@@ -287,12 +287,88 @@ impl Github {
                 err
             );
         }
-        users::update_user_refresh(&mut tx, &res.user.id).await;
+        users::update_user_refresh(&mut tx, &res.user.id, &chrono::Utc::now())
+            .await;
 
         tx.commit().await.unwrap_or_else(|err| {
             panic!(
                 "Unable to commit populate transaction for user '{}': {}",
                 res.user.login, err
+            );
+        });
+
+        Ok(())
+    }
+
+    /// Refreshes the specified user's data.
+    ///
+    /// # Arguments
+    ///
+    /// * `db` - A GHD Database handle.
+    /// * `login` - String containing the login of the user to be refreshed.
+    ///
+    pub async fn refresh_user(
+        self: &Self,
+        db: &DB,
+        login: &String,
+    ) -> Result<(), GHDError> {
+        let user = match users::get_user_by_login(&db, &login).await {
+            Ok(u) => u,
+            Err(GHDError::UserNotFoundError) => {
+                panic!(
+                    "Trying to refresh a user that is not on the database: {}",
+                    login
+                );
+            }
+            Err(err) => {
+                panic!("Unexpected error: {:?}", err);
+            }
+        };
+
+        let token = match self.get_token(&db).await {
+            Ok(t) => t.clone(),
+            Err(_) => {
+                panic!("Token not set!");
+            }
+        };
+
+        let last_update = match refresh::get_user_refresh(&db, &user.id).await {
+            Ok(v) => v,
+            Err(err) => {
+                panic!("Unexpected error: {:?}", err);
+            }
+        };
+
+        let res =
+            match gql::get_user_updates(&token, &login, &last_update).await {
+                Ok(updates) => updates,
+                Err(err) => {
+                    panic!(
+                    "Unexpected error obtaining user updates from GQL: {:?}",
+                    err
+                );
+                }
+            };
+
+        let mut tx = match db.pool().begin().await {
+            Ok(res) => res,
+            Err(err) => {
+                panic!("Error starting transaction to update user: {}", err);
+            }
+        };
+
+        if let Err(err) = prs::update_prs(&mut tx, &res.prs).await {
+            panic!(
+                "Error updating pull requests for user '{}': {:?}",
+                login, err
+            );
+        }
+        users::update_user_refresh(&mut tx, &user.id, &res.when).await;
+
+        tx.commit().await.unwrap_or_else(|err| {
+            panic!(
+                "Unable to commit update transaction for user '{}': {}",
+                user.login, err
             );
         });
 

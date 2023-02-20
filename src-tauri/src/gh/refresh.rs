@@ -14,7 +14,7 @@
 
 use crate::{common, db::DB, errors::GHDError};
 
-use super::users;
+use super::{types::GithubUser, users};
 
 const USER_REFRESH_INTERVAL: i64 = 60;
 
@@ -80,4 +80,38 @@ pub async fn should_refresh_user(db: &DB, login: &String) -> bool {
             panic!("Unknown error while checking refresh user: {:?}", err);
         }
     };
+}
+
+/// Obtain all users that are due for a refresh.
+///
+/// # Arguments
+///
+/// * `db` - A GHD Database handle.
+///
+pub async fn get_to_refresh_users(db: &DB) -> Vec<GithubUser> {
+    let cutoff = match chrono::Utc::now()
+        .checked_sub_signed(chrono::Duration::seconds(USER_REFRESH_INTERVAL))
+    {
+        Some(v) => v.timestamp(),
+        None => {
+            panic!("Unexpected error calculating cutoff time!");
+        }
+    };
+
+    match sqlx::query_as::<_, GithubUser>(
+        "
+        SELECT users.* FROM users INNER JOIN user_refresh
+        ON users.id = user_refresh.id
+        WHERE user_refresh.refresh_at <= ?
+        ",
+    )
+    .bind(&cutoff)
+    .fetch_all(db.pool())
+    .await
+    {
+        Ok(res) => res,
+        Err(err) => {
+            panic!("Unexpected error: {}", err);
+        }
+    }
 }

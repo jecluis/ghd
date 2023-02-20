@@ -99,8 +99,9 @@ pub async fn add_user_to_db(
 pub async fn update_user_refresh(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     userid: &i64,
+    when: &chrono::DateTime<chrono::Utc>,
 ) {
-    let now = chrono::Utc::now().timestamp();
+    let now = when.timestamp();
     sqlx::query("UPDATE user_refresh SET refresh_at = ? WHERE id = ?")
         .bind(&now)
         .bind(&userid)
