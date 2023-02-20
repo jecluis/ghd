@@ -98,10 +98,10 @@ const GITHUB_TKN_PREFIX = "ghp_";
 function githubTokenValidator(): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const value: string = control.value;
-    const match =
-      (value.startsWith(GITHUB_PAT_PREFIX) ||
-        value.startsWith(GITHUB_TKN_PREFIX)) &&
-      isValidToken(value);
+    if (value.startsWith(GITHUB_PAT_PREFIX)) {
+      return { patToken: { value: control.value } };
+    }
+    const match = value.startsWith(GITHUB_TKN_PREFIX) && isValidToken(value);
     return match ? null : { badToken: { value: control.value } };
   };
 }

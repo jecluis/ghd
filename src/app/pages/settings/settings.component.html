@@ -28,7 +28,7 @@ limitations under the License.
       </label>
       <div class="col-8 ">
         <input class="form-control" id="github-token-input" type="text"
-               placeholder="token" [formControl]="apiTokenFormControl"
+               placeholder="ghp_" [formControl]="apiTokenFormControl"
                [class.is-invalid]="isTokenInvalid()"
                [class.is-valid]="tokenIsValidated && successSettingToken"
                (input)="changeToken()" />
@@ -38,6 +38,10 @@ limitations under the License.
         <div class="invalid-feedback"
              *ngIf="apiTokenFormControl.errors?.['badToken']">
           Wrong GitHub token format
+        </div>
+        <div class="invalid-feedback"
+             *ngIf="apiTokenFormControl.errors?.['patToken']">
+          Fine-grained personal access token not allowed.
         </div>
         <div class="valid-feedback" *ngIf="successSettingToken">
           Successfully set token
