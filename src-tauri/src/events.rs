@@ -16,6 +16,7 @@ use crate::gh::{types::GithubUser, types::PullRequestEntry};
 
 pub const EV_ITERATION: &str = "iteration";
 pub const EV_PULL_REQUESTS_UPDATE: &str = "pull_requests_update";
+pub const EV_USER_DATA_UPDATE: &str = "user_data_update";
 pub const EV_USER_UPDATE: &str = "user_update";
 pub const EV_TOKEN_SET: &str = "token_set";
 
@@ -56,4 +57,9 @@ pub fn emit_pull_request_update(
         EV_PULL_REQUESTS_UPDATE,
         PullRequestUpdatePayload { user, prs },
     );
+}
+
+pub fn emit_user_data_update(w: &tauri::Window, login: &String) {
+    println!("emite user data update for '{}'", login);
+    emit(w, EV_USER_DATA_UPDATE, login);
 }

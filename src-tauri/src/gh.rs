@@ -311,7 +311,7 @@ impl Github {
         self: &Self,
         db: &DB,
         login: &String,
-    ) -> Result<(), GHDError> {
+    ) -> Result<bool, GHDError> {
         let user = match users::get_user_by_login(&db, &login).await {
             Ok(u) => u,
             Err(GHDError::UserNotFoundError) => {
@@ -357,6 +357,12 @@ impl Github {
             }
         };
 
+        let mut ret = true;
+        if res.prs.is_empty() && res.issues.is_empty() {
+            println!("nothing to update for user '{}'.", user.login);
+            ret = false;
+        }
+
         if let Err(err) = prs::update_prs(&mut tx, &res.prs).await {
             panic!(
                 "Error updating pull requests for user '{}': {:?}",
@@ -372,7 +378,7 @@ impl Github {
             );
         });
 
-        Ok(())
+        Ok(ret)
     }
 
     pub async fn get_user_refresh(

@@ -15,6 +15,7 @@
 use crate::{
     common,
     db::DB,
+    events,
     gh::{self, Github},
     ManagedState,
 };
@@ -53,9 +54,11 @@ impl BGTask {
             for user in &to_refresh {
                 println!("should refresh user '{}'", user.login);
                 match gh.refresh_user(&db, &user.login).await {
-                    Ok(_) => {
+                    Ok(true) => {
                         println!("refreshed user '{}'", user.login);
+                        events::emit_user_data_update(&window, &user.login);
                     }
+                    Ok(false) => {}
                     Err(err) => {
                         println!(
                             "error refreshing user '{}': {:?}",

@@ -36,6 +36,7 @@ export class TauriService {
     PULL_REQUESTS_UPDATE: "pull_requests_update",
     USER_UPDATE: "user_update",
     TOKEN_SET: "token_set",
+    USER_DATA_UPDATE: "user_data_update",
   };
 
   private listeners: Map<string, Map<string, TauriEventListener>>;
