@@ -21,21 +21,20 @@ export type GithubUser = {
 
 export type PullRequestEntry = {
   id: number;
+  number: number;
+  title: string;
   author: string;
   author_id: string;
   url: string;
-  html_url: string;
-  number: number;
-  title: string;
   repo_owner: string;
   repo_name: string;
   state: string;
-  is_draft: boolean;
-  milestone?: string;
-  comments: number;
   created_at: number;
   updated_at: number;
   closed_at?: number;
-  merged_at?: number;
+  is_pull_request: boolean;
   last_viewed?: number;
+  is_draft: boolean;
+  review_decision: string;
+  merged_at?: number;
 };

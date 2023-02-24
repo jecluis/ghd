@@ -52,6 +52,11 @@ query UserInfo($login: String!) {
   }
 }
 
+fragment UserFragment on User {
+  login
+  databaseId
+}
+
 query SearchIssues($q: String!) {
   search(first: 100, query: $q, type: ISSUE) {
     nodes {
@@ -62,10 +67,7 @@ query SearchIssues($q: String!) {
         databaseId
         author {
           __typename
-          ... on User {
-            login
-            databaseId
-          }
+          ...UserFragment
         }
         repository {
           owner {
@@ -78,26 +80,50 @@ query SearchIssues($q: String!) {
         state
         isDraft
         totalCommentsCount
-        createdAt
-        updatedAt
-        closedAt
-        mergedAt
+        reviewRequests(first: 30) {
+          nodes {
+            requestedReviewer {
+              __typename
+              ...UserFragment
+            }
+          }
+        }
         reviewDecision
         reviews(first: 1) {
           totalCount
         }
+        createdAt
+        updatedAt
+        closedAt
+        mergedAt
       }
       ... on Issue {
         title
         number
         databaseId
-        updatedAt
+        url
+        author {
+          __typename
+          ...UserFragment
+        }
         repository {
           owner {
             __typename
             login
           }
           name
+        }
+        state
+        createdAt
+        updatedAt
+        closedAt
+        comments(first: 100) {
+          nodes {
+            author {
+              __typename
+              ...UserFragment
+            }
+          }
         }
       }
     }

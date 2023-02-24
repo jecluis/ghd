@@ -15,15 +15,9 @@
 import { Component, NgZone, OnDestroy, OnInit } from "@angular/core";
 import { Subscription } from "rxjs";
 import {
-  PREntry,
-  PullRequestsService,
-} from "src/app/shared/services/pull-requests.service";
-import {
   TauriEventListener,
   TauriListenerEvent,
-  TauriService,
 } from "src/app/shared/services/tauri.service";
-import { invoke } from "@tauri-apps/api";
 import {
   GithubService,
   UsersMap,

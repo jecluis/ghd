@@ -33,7 +33,6 @@ export interface TauriEventListener {
 export class TauriService {
   public static events = {
     ITERATION: "iteration",
-    PULL_REQUESTS_UPDATE: "pull_requests_update",
     USER_UPDATE: "user_update",
     TOKEN_SET: "token_set",
     USER_DATA_UPDATE: "user_data_update",

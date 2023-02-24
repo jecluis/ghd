@@ -159,7 +159,7 @@ async fn pr_mark_viewed(
 async fn pr_get_list_by_login(
     login: String,
     mstate: tauri::State<'_, ManagedState>,
-) -> Result<Vec<gh::types::PullRequestEntry>, ()> {
+) -> Result<Vec<gh::types::PullRequestTableEntry>, ()> {
     let state = &mstate.state().await;
     let db = &state.db;
     let gh = &state.gh;

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use crate::{
-    common,
     db::DB,
     events,
     gh::{self, Github},
@@ -88,51 +87,9 @@ impl BGTask {
     }
 }
 
-async fn get_token(gh: &Github, db: &DB) -> String {
-    match &gh.get_token(&db).await {
-        Ok(t) => t.clone(),
-        Err(_) => String::default(),
-    }
-}
-
 async fn has_token(gh: &Github, db: &DB) -> bool {
     match &gh.get_token(&db).await {
         Ok(_) => true,
         Err(_) => false,
     }
-}
-
-fn get_pull_requests(prs: &Vec<gh::types::PullRequestEntry>) -> types::PRList {
-    let mut prlist = types::PRList::default();
-
-    for pr in prs {
-        let created = common::ts_to_datetime(pr.created_at).unwrap();
-        let diff = chrono::Utc::now().signed_duration_since(created);
-
-        let secs = diff.num_seconds();
-        let hours = diff.num_hours();
-        let days = diff.num_days();
-        let weeks = diff.num_weeks();
-        let months = days / 30;
-
-        let age = if months > 0 {
-            format!("{} months", months)
-        } else if weeks > 0 {
-            format!("{} weeks", weeks)
-        } else if days > 0 {
-            format!("{} days", days)
-        } else if hours > 0 {
-            format!("{} hours", hours)
-        } else {
-            format!("{} secs", secs)
-        };
-
-        prlist.entries.push(types::PREntry {
-            id: pr.number,
-            title: pr.title.clone(),
-            age_str: age,
-        });
-    }
-
-    prlist
 }

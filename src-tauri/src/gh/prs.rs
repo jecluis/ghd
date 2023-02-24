@@ -12,69 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{db::DB, errors::GHDError};
+use crate::{common, db::DB, errors::GHDError};
 
-use super::{api, rest::GithubRequest, types::PullRequestEntry, Github};
+use super::types::{Issue, PullRequest, PullRequestTableEntry};
 
-#[derive(serde::Deserialize)]
-pub struct PullRequestSearchResult {
-    pub total_count: u32,
-    pub incomplete_results: bool,
-    pub items: Vec<api::PullRequestSearchAPIEntry>,
-}
-
-pub async fn fetch_by_author(
+/// Obtain all Pull Requests from the database.
+///
+pub async fn get_all_prs_from_db(
     db: &DB,
-    gh: &Github,
-    login: &String,
-) -> Result<Vec<PullRequestEntry>, GHDError> {
-    let token = match gh.get_token(&db).await {
-        Ok(res) => res,
-        Err(err) => return Err(err),
-    };
-
-    let qstr = format!("type:pr state:open author:{}", login);
-    let ghreq = GithubRequest::new(&token);
-    let req = ghreq.get("/search/issues").query(&[("q", qstr)]);
-
-    match ghreq.send::<PullRequestSearchResult>(req).await {
-        Ok(res) => {
-            let mut v = Vec::<PullRequestEntry>::new();
-            for entry in &res.items {
-                v.push(PullRequestEntry::from_api_entry(entry));
-            }
-            Ok(v)
-        }
-        Err(err) => {
-            panic!(
-                "Unable to obtain pull requests for user {}: {}",
-                login, err
-            );
-        }
-    }
-}
-
-pub async fn get_by_author(
-    db: &DB,
-    gh: &Github,
-    login: &String,
-) -> Result<Vec<PullRequestEntry>, GHDError> {
-    if super::refresh::should_refresh_user(&db, &login).await {}
-
-    match get_prs_from_db(&db, &login).await {
-        Ok(res) => Ok(res),
-        Err(err) => Err(err),
-    }
-}
-
-async fn get_prs_from_db(
-    db: &DB,
-    login: &String,
-) -> Result<Vec<PullRequestEntry>, GHDError> {
-    match sqlx::query_as::<_, PullRequestEntry>(
-        "SELECT * FROM pull_request WHERE author = ?",
+) -> Result<Vec<PullRequestTableEntry>, GHDError> {
+    match sqlx::query_as::<_, PullRequestTableEntry>(
+        "
+        SELECT
+            issues.*, pull_requests.is_draft, pull_requests.review_decision,
+            pull_requests.merged_at
+        FROM
+            pull_requests LEFT JOIN issues
+        ON
+            pull_requests.id = issues.id
+        ",
     )
-    .bind(login)
     .fetch_all(db.pool())
     .await
     {
@@ -85,60 +42,209 @@ async fn get_prs_from_db(
     }
 }
 
-/// Inserts into the database the Pull Requests provided in the `prs` Vector.
-/// This operation is performed as part of a larger transaction, for which a
-/// handle should be provided by the caller.
+/// Obtain all Pull Requests from the provided author `login`.
+///
+pub async fn get_prs_by_author(
+    db: &DB,
+    login: &String,
+) -> Result<Vec<PullRequestTableEntry>, GHDError> {
+    match sqlx::query_as::<_, PullRequestTableEntry>(
+        "
+        SELECT
+            issues.*, pull_requests.is_draft, pull_requests.review_decision,
+            pull_requests.merged_at
+        FROM
+            pull_requests LEFT JOIN issues
+        ON
+            pull_requests.id = issues.id
+        WHERE
+            issues.author = ?
+        ",
+    )
+    .bind(&login)
+    .fetch_all(db.pool())
+    .await
+    {
+        Ok(res) => Ok(res),
+        Err(err) => {
+            panic!("Unable to obtain pull requests from db: {}", err);
+        }
+    }
+}
+
+/// Obtain all Pull Requests the provided user `login` is involved with. This
+/// means mentions, review requests, authored, or where the user may have
+/// commented.
+///
+pub async fn get_involved_prs(
+    db: &DB,
+    login: &String,
+) -> Result<Vec<PullRequestTableEntry>, GHDError> {
+    match sqlx::query_as::<_, PullRequestTableEntry>(
+        "
+        SELECT
+            issues.*, pull_requests.is_draft, pull_requests.merged_at,
+            pull_requests.review_decision
+        FROM pull_requests LEFT JOIN (
+            SELECT
+                issues.*
+            FROM
+                issues LEFT JOIN user_issues
+            ON
+                issues.id = user_issues.issue_id
+            WHERE
+                user_issues.user_id = (
+                    SELECT id FROM users WHERE login = ?
+                )
+        ) AS
+            issues
+        ON
+            pull_requests.id = issues.id;
+        ",
+    )
+    .bind(&login)
+    .fetch_all(db.pool())
+    .await
+    {
+        Ok(res) => Ok(res),
+        Err(err) => {
+            panic!("Unable to obtain data from database: {}", err);
+        }
+    }
+}
+
+/// Insert the given issue into the database.
+///
+async fn consume_issue(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    issue: &Issue,
+) -> Result<(), GHDError> {
+    match sqlx::query(
+        "
+        INSERT OR REPLACE INTO issues (
+            id, number, title, author, author_id,
+            url, repo_owner, repo_name, state,
+            created_at, updated_at, closed_at,
+            is_pull_request,
+            last_viewed
+        ) VALUES (
+            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?, ?,
+            ?,
+            ?
+        )
+        ",
+    )
+    .bind(&issue.id)
+    .bind(&issue.number)
+    .bind(&issue.title)
+    .bind(&issue.author)
+    .bind(&issue.author_id)
+    .bind(&issue.url)
+    .bind(&issue.repo_owner)
+    .bind(&issue.repo_name)
+    .bind(&issue.state)
+    .bind(&issue.created_at.timestamp())
+    .bind(&issue.updated_at.timestamp())
+    .bind(common::dt_opt_to_ts(&issue.closed_at))
+    .bind(&issue.is_pull_request)
+    .bind(common::dt_opt_to_ts(&issue.last_viewed))
+    .execute(&mut *tx)
+    .await
+    {
+        Ok(_) => {}
+        Err(err) => {
+            panic!("Unable to consume issue: {}", err);
+        }
+    };
+    Ok(())
+}
+
+/// Consume all issues and Pull Requests provided as arguments, writing them to
+/// the database, associating them with the provided `userid`.
 ///
 /// # Arguments
 ///
-/// * `tx` - A database transaction handle.
-/// * `prs` - A Vector containing the Pull Requests to be added to the database.
+/// * `tx` - A transaction handle.
+/// * `userid` - The user ID to associate the issues and Pull Requests with.
+/// * `issues` - A Vector of Issues associated with the provided user.
+/// * `prs` - A Vector of Pull Requests associated with the provided user.
 ///
-pub async fn consume_prs(
+pub async fn consume_issues(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
-    prs: &Vec<PullRequestEntry>,
+    userid: &i64,
+    issues: &Vec<Issue>,
+    prs: &Vec<PullRequest>,
 ) -> Result<(), GHDError> {
-    println!("consuming {} pull requests", prs.len());
-    for pr in prs {
+    println!("consuming {} issues, {} prs", issues.len(), prs.len());
+
+    let mut issue_ids: Vec<i64> = vec![];
+
+    for entry in issues {
+        match consume_issue(tx, &entry).await {
+            Ok(_) => {}
+            Err(err) => {
+                panic!("unexpected error: {:?}", err);
+            }
+        };
+        issue_ids.push(entry.id);
+    }
+
+    for entry in prs {
+        match consume_issue(tx, &entry.issue).await {
+            Ok(_) => {}
+            Err(err) => {
+                panic!("unexpected error: {:?}", err);
+            }
+        };
+
+        // consume pull request
         match sqlx::query(
             "
-            INSERT OR REPLACE INTO pull_request (
-                id, number, title, author, author_id, url, html_url,
-                repo_owner, repo_name, state, is_draft, milestone,
-                created_at, updated_at, closed_at, merged_at, 
-                comments, last_viewed
+            INSERT OR REPLACE INTO pull_requests (
+                id, is_draft, review_decision, merged_at
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?
+                ?, ?, ?, ?
             )
             ",
         )
-        .bind(&pr.id)
-        .bind(&pr.number)
-        .bind(&pr.title)
-        .bind(&pr.author)
-        .bind(&pr.author_id)
-        .bind(&pr.url)
-        .bind(&pr.html_url)
-        .bind(&pr.repo_owner)
-        .bind(&pr.repo_name)
-        .bind(&pr.state)
-        .bind(&pr.is_draft)
-        .bind(&pr.milestone)
-        .bind(&pr.created_at)
-        .bind(&pr.updated_at)
-        .bind(&pr.closed_at)
-        .bind(&pr.merged_at)
-        .bind(&pr.comments)
-        .bind(&pr.last_viewed)
+        .bind(&entry.issue.id)
+        .bind(&entry.is_draft)
+        .bind(&entry.review_decision)
+        .bind(common::dt_opt_to_ts(&entry.merged_at))
         .execute(&mut *tx)
         .await
         {
             Ok(_) => {}
             Err(err) => {
-                panic!("Unable to consume pull request: {}", err);
+                panic!("unable to consume pull request: {}", err);
+            }
+        };
+        issue_ids.push(entry.issue.id);
+    }
+
+    for id in &issue_ids {
+        match sqlx::query(
+            "
+            INSERT OR REPLACE INTO user_issues (
+                user_id, issue_id
+            ) VALUES (
+                ?, ?
+            )
+            ",
+        )
+        .bind(&userid)
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        {
+            Ok(_) => {}
+            Err(err) => {
+                panic!(
+                    "unable to track issue {} for user {}: {}",
+                    id, userid, err
+                );
             }
         };
     }
@@ -171,58 +277,5 @@ pub async fn mark_viewed(db: &DB, prid: &i64) -> Result<(), GHDError> {
         }
     };
 
-    Ok(())
-}
-
-/// Update on-disk pull requests data with the values being provided in the Pull
-/// Request Vector `prs`.
-///
-/// # Arguments
-///
-/// * `tx` - A database transaction handle.
-/// * `prs` - A Vector containing the Pull Requests to be updated.
-///
-pub async fn update_prs(
-    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
-    prs: &Vec<PullRequestEntry>,
-) -> Result<(), GHDError> {
-    for pr in prs {
-        match sqlx::query(
-            "
-            UPDATE pull_request
-            SET
-                title = ?,
-                state = ?,
-                is_draft = ?,
-                milestone = ?,
-                updated_at = ?,
-                closed_at = ?,
-                merged_at = ?,
-                comments = ?
-            WHERE
-                id = ?
-            ",
-        )
-        .bind(&pr.title)
-        .bind(&pr.state)
-        .bind(&pr.is_draft)
-        .bind(&pr.milestone)
-        .bind(&pr.updated_at)
-        .bind(&pr.closed_at)
-        .bind(&pr.merged_at)
-        .bind(&pr.comments)
-        .bind(&pr.id)
-        .execute(&mut *tx)
-        .await
-        {
-            Ok(_) => {}
-            Err(err) => {
-                panic!(
-                    "Unable to update pull request id '{}': {}",
-                    &pr.id, err
-                );
-            }
-        };
-    }
     Ok(())
 }

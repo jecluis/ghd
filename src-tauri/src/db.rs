@@ -76,26 +76,35 @@ async fn create_db_schema(uri: &str) -> Result<SqliteQueryResult, sqlx::Error> {
         avatar_url  TEXT NOT NULL,
         name        TEXT NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS pull_request (
-        id          INTEGER PRIMARY KEY NOT NULL,
-        number      INTEGER NOT NULL,
-        title       TEXT NOT NULL,
-        author      TEXT NOT NULL,
-        author_id   INTEGER NOT NULL,
-        url         TEXT NOT NULL,
-        html_url    TEXT NOT NULL,
-        repo_owner  TEXT NOT NULL,
-        repo_name   TEXT NOT NULL,
-        state       TEXT NOT NULL,
-        is_draft    BOOL NOT NULL,
-        milestone   TEXT,
-        created_at  INTEGER NOT NULL,
-        updated_at  INTEGER NOT NULL,
-        closed_at   INTEGER,
-        merged_at   INTEGER,
-        comments    INTEGER NOT NULL,
-        last_viewed INTEGER,
-        FOREIGN KEY(author_id) REFERENCES users(id)
+    CREATE TABLE IF NOT EXISTS issues (
+        id              INTEGER PRIMARY KEY NOT NULL,
+        number          INTEGER NOT NULL,
+        title           TEXT NOT NULL,
+        author          TEXT NOT NULL,
+        author_id       INTEGER NOT NULL,
+        url             TEXT NOT NULL,
+        repo_owner      TEXT NOT NULL,
+        repo_name       TEXT NOT NULL,
+        state           TEXT NOT NULL,
+        created_at      INTEGER NOT NULL,
+        updated_at      INTEGER NOT NULL,
+        closed_at       INTEGER,
+        is_pull_request BOOL NOT NULL,
+        last_viewed     INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS pull_requests (
+        id              INTEGER PRIMARY KEY NOT NULL,
+        is_draft        BOOL NOT NULL,
+        review_decision TEXT NOT NULL,
+        merged_at       INTEGER,
+        FOREIGN KEY (id) REFERENCES issues (id)
+    );
+    CREATE TABLE IF NOT EXISTS user_issues (
+        user_id     INTEGER NOT NULL,
+        issue_id    INTEGER NOT NULL,
+        PRIMARY KEY (user_id, issue_id),
+        FOREIGN KEY (user_id) REFERENCES users (id),
+        FOREIGN KEY (issue_id) REFERENCES issues (id)
     );
     CREATE TABLE IF NOT EXISTS user_refresh (
         id          INTEGER PRIMARY KEY NOT NULL,

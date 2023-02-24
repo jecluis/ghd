@@ -14,8 +14,6 @@
 
 // Users
 
-use super::api;
-
 /// Describes a user, as it is kept in the database.
 ///
 #[derive(sqlx::FromRow, serde::Serialize)]
@@ -26,81 +24,83 @@ pub struct GithubUser {
     pub avatar_url: String,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, sqlx::FromRow)]
-pub struct PullRequestEntry {
+#[derive(sqlx::FromRow)]
+pub struct IssueTableEntry {
     pub id: i64,
     pub number: i64,
     pub title: String,
     pub author: String,
     pub author_id: i64,
     pub url: String,
-    pub html_url: String,
     pub repo_owner: String,
     pub repo_name: String,
     pub state: String,
-    pub is_draft: bool,
-    pub milestone: Option<String>,
-    pub comments: i64,
     pub created_at: i64,
     pub updated_at: i64,
     pub closed_at: Option<i64>,
-    pub merged_at: Option<i64>,
+    pub is_pull_request: bool,
     pub last_viewed: Option<i64>,
 }
 
-impl PullRequestEntry {
-    pub fn from_api_entry(entry: &api::PullRequestSearchAPIEntry) -> Self {
-        PullRequestEntry {
-            id: entry.id,
-            author: entry.user.login.clone(),
-            author_id: entry.user.id,
-            url: entry.url.clone(),
-            html_url: entry.html_url.clone(),
-            number: entry.number,
-            title: entry.title.clone(),
-            repo_owner: String::new(),
-            repo_name: String::new(),
-            state: entry.state.clone(),
-            is_draft: entry.draft,
-            milestone: match &entry.milestone {
-                Some(m) => Some(m.title.clone()),
-                None => None,
-            },
-            comments: entry.comments,
-            created_at: entry.created_at.timestamp(),
-            updated_at: entry.updated_at.timestamp(),
-            closed_at: match entry.closed_at {
-                Some(dt) => Some(dt.timestamp()),
-                None => None,
-            },
-            merged_at: match entry.pull_request.merged_at {
-                Some(dt) => Some(dt.timestamp()),
-                None => None,
-            },
-            last_viewed: None,
-        }
-    }
-}
-
-#[derive(serde::Deserialize, serde::Serialize, sqlx::FromRow)]
-pub struct IssueEntry {
+/// A Pull Request Table Entry includes all columns in the `IssueTableEntry`
+/// struct, because it always must be the result of a `JOIN` between the
+/// `issues` table and the `pull_requests` table.
+///
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct PullRequestTableEntry {
     pub id: i64,
-    pub title: String,
     pub number: i64,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub title: String,
     pub author: String,
-    pub participants: i64,
-    pub assignees: Vec<String>,
+    pub author_id: i64,
+    pub url: String,
+    pub repo_owner: String,
+    pub repo_name: String,
+    pub state: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+    pub closed_at: Option<i64>,
+    pub is_pull_request: bool,
+    pub last_viewed: Option<i64>,
+    pub is_draft: bool,
+    pub review_decision: String,
+    pub merged_at: Option<i64>,
 }
 
-pub struct GithubUserInfo {
-    pub user: GithubUser,
-    pub prs: Vec<PullRequestEntry>,
-    pub issues: Vec<IssueEntry>,
+#[derive(sqlx::FromRow)]
+pub struct UserIssuesTableEntry {
+    pub user_id: i64,
+    pub issue_id: i64,
 }
 
-pub struct GithubUserUpdate {
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct Issue {
+    pub id: i64,
+    pub number: i64,
+    pub title: String,
+    pub author: String,
+    pub author_id: i64,
+    pub url: String,
+    pub repo_owner: String,
+    pub repo_name: String,
+    pub state: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub closed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub is_pull_request: bool,
+    pub last_viewed: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct PullRequest {
+    pub issue: Issue,
+    pub is_draft: bool,
+    pub review_decision: String,
+    pub merged_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+pub struct UserUpdate {
     pub when: chrono::DateTime<chrono::Utc>,
-    pub prs: Vec<PullRequestEntry>,
-    pub issues: Vec<IssueEntry>,
+    pub issues: Vec<Issue>,
+    pub prs: Vec<PullRequest>,
 }

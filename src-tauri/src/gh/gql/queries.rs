@@ -4,7 +4,7 @@ pub mod user_info {
     #![allow(dead_code)]
     use std::result::Result;
     pub const OPERATION_NAME: &str = "UserInfo";
-    pub const QUERY : & str = "query UserInfo($login: String!) {\n  user(login: $login) {\n    name\n    login\n    avatarUrl\n    databaseId\n    pullRequests(first: 30, states: OPEN) {\n      nodes {\n        title\n        number\n        databaseId\n        totalCommentsCount\n        createdAt\n        updatedAt\n        isDraft\n        milestone {\n          id\n        }\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n        reviewDecision\n        reviews(first: 1) {\n          totalCount\n        }\n      }\n    }\n    issues(first: 30, states: OPEN) {\n      nodes {\n        title\n        number\n        databaseId\n        updatedAt\n        author {\n          __typename\n          login\n        }\n        participants(first: 1) {\n          totalCount\n        }\n        assignees(first: 10) {\n          nodes {\n            login\n          }\n        }\n      }\n    }\n  }\n}\n\nquery SearchIssues($q: String!) {\n  search(first: 100, query: $q, type: ISSUE) {\n    nodes {\n      __typename\n      ... on PullRequest {\n        title\n        number\n        databaseId\n        author {\n          __typename\n          ... on User {\n            login\n            databaseId\n          }\n        }\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n        url\n        state\n        isDraft\n        totalCommentsCount\n        createdAt\n        updatedAt\n        closedAt\n        mergedAt\n        reviewDecision\n        reviews(first: 1) {\n          totalCount\n        }\n      }\n      ... on Issue {\n        title\n        number\n        databaseId\n        updatedAt\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n      }\n    }\n  }\n}\n" ;
+    pub const QUERY : & str = "query UserInfo($login: String!) {\n  user(login: $login) {\n    name\n    login\n    avatarUrl\n    databaseId\n    pullRequests(first: 30, states: OPEN) {\n      nodes {\n        title\n        number\n        databaseId\n        totalCommentsCount\n        createdAt\n        updatedAt\n        isDraft\n        milestone {\n          id\n        }\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n        reviewDecision\n        reviews(first: 1) {\n          totalCount\n        }\n      }\n    }\n    issues(first: 30, states: OPEN) {\n      nodes {\n        title\n        number\n        databaseId\n        updatedAt\n        author {\n          __typename\n          login\n        }\n        participants(first: 1) {\n          totalCount\n        }\n        assignees(first: 10) {\n          nodes {\n            login\n          }\n        }\n      }\n    }\n  }\n}\n\nfragment UserFragment on User {\n  login\n  databaseId\n}\n\nquery SearchIssues($q: String!) {\n  search(first: 100, query: $q, type: ISSUE) {\n    nodes {\n      __typename\n      ... on PullRequest {\n        title\n        number\n        databaseId\n        author {\n          __typename\n          ...UserFragment\n        }\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n        url\n        state\n        isDraft\n        totalCommentsCount\n        reviewRequests(first: 30) {\n          nodes {\n            requestedReviewer {\n              __typename\n              ...UserFragment\n            }\n          }\n        }\n        reviewDecision\n        reviews(first: 1) {\n          totalCount\n        }\n        createdAt\n        updatedAt\n        closedAt\n        mergedAt\n      }\n      ... on Issue {\n        title\n        number\n        databaseId\n        url\n        author {\n          __typename\n          ...UserFragment\n        }\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n        state\n        createdAt\n        updatedAt\n        closedAt\n        comments(first: 100) {\n          nodes {\n            author {\n              __typename\n              ...UserFragment\n            }\n          }\n        }\n      }\n    }\n  }\n}\n" ;
     use super::*;
     use serde::{Deserialize, Serialize};
     #[allow(dead_code)]
@@ -190,7 +190,7 @@ pub mod search_issues {
     #![allow(dead_code)]
     use std::result::Result;
     pub const OPERATION_NAME: &str = "SearchIssues";
-    pub const QUERY : & str = "query UserInfo($login: String!) {\n  user(login: $login) {\n    name\n    login\n    avatarUrl\n    databaseId\n    pullRequests(first: 30, states: OPEN) {\n      nodes {\n        title\n        number\n        databaseId\n        totalCommentsCount\n        createdAt\n        updatedAt\n        isDraft\n        milestone {\n          id\n        }\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n        reviewDecision\n        reviews(first: 1) {\n          totalCount\n        }\n      }\n    }\n    issues(first: 30, states: OPEN) {\n      nodes {\n        title\n        number\n        databaseId\n        updatedAt\n        author {\n          __typename\n          login\n        }\n        participants(first: 1) {\n          totalCount\n        }\n        assignees(first: 10) {\n          nodes {\n            login\n          }\n        }\n      }\n    }\n  }\n}\n\nquery SearchIssues($q: String!) {\n  search(first: 100, query: $q, type: ISSUE) {\n    nodes {\n      __typename\n      ... on PullRequest {\n        title\n        number\n        databaseId\n        author {\n          __typename\n          ... on User {\n            login\n            databaseId\n          }\n        }\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n        url\n        state\n        isDraft\n        totalCommentsCount\n        createdAt\n        updatedAt\n        closedAt\n        mergedAt\n        reviewDecision\n        reviews(first: 1) {\n          totalCount\n        }\n      }\n      ... on Issue {\n        title\n        number\n        databaseId\n        updatedAt\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n      }\n    }\n  }\n}\n" ;
+    pub const QUERY : & str = "query UserInfo($login: String!) {\n  user(login: $login) {\n    name\n    login\n    avatarUrl\n    databaseId\n    pullRequests(first: 30, states: OPEN) {\n      nodes {\n        title\n        number\n        databaseId\n        totalCommentsCount\n        createdAt\n        updatedAt\n        isDraft\n        milestone {\n          id\n        }\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n        reviewDecision\n        reviews(first: 1) {\n          totalCount\n        }\n      }\n    }\n    issues(first: 30, states: OPEN) {\n      nodes {\n        title\n        number\n        databaseId\n        updatedAt\n        author {\n          __typename\n          login\n        }\n        participants(first: 1) {\n          totalCount\n        }\n        assignees(first: 10) {\n          nodes {\n            login\n          }\n        }\n      }\n    }\n  }\n}\n\nfragment UserFragment on User {\n  login\n  databaseId\n}\n\nquery SearchIssues($q: String!) {\n  search(first: 100, query: $q, type: ISSUE) {\n    nodes {\n      __typename\n      ... on PullRequest {\n        title\n        number\n        databaseId\n        author {\n          __typename\n          ...UserFragment\n        }\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n        url\n        state\n        isDraft\n        totalCommentsCount\n        reviewRequests(first: 30) {\n          nodes {\n            requestedReviewer {\n              __typename\n              ...UserFragment\n            }\n          }\n        }\n        reviewDecision\n        reviews(first: 1) {\n          totalCount\n        }\n        createdAt\n        updatedAt\n        closedAt\n        mergedAt\n      }\n      ... on Issue {\n        title\n        number\n        databaseId\n        url\n        author {\n          __typename\n          ...UserFragment\n        }\n        repository {\n          owner {\n            __typename\n            login\n          }\n          name\n        }\n        state\n        createdAt\n        updatedAt\n        closedAt\n        comments(first: 100) {\n          nodes {\n            author {\n              __typename\n              ...UserFragment\n            }\n          }\n        }\n      }\n    }\n  }\n}\n" ;
     use super::*;
     use serde::{Deserialize, Serialize};
     #[allow(dead_code)]
@@ -203,6 +203,36 @@ pub mod search_issues {
     type ID = String;
     type DateTime = crate::gh::gql::custom_types::DateTime;
     type URI = crate::gh::gql::custom_types::URI;
+    #[derive(Debug)]
+    pub enum IssueState {
+        CLOSED,
+        OPEN,
+        Other(String),
+    }
+    impl ::serde::Serialize for IssueState {
+        fn serialize<S: serde::Serializer>(
+            &self,
+            ser: S,
+        ) -> Result<S::Ok, S::Error> {
+            ser.serialize_str(match *self {
+                IssueState::CLOSED => "CLOSED",
+                IssueState::OPEN => "OPEN",
+                IssueState::Other(ref s) => &s,
+            })
+        }
+    }
+    impl<'de> ::serde::Deserialize<'de> for IssueState {
+        fn deserialize<D: ::serde::Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<Self, D::Error> {
+            let s: String = ::serde::Deserialize::deserialize(deserializer)?;
+            match s.as_str() {
+                "CLOSED" => Ok(IssueState::CLOSED),
+                "OPEN" => Ok(IssueState::OPEN),
+                _ => Ok(IssueState::Other(s)),
+            }
+        }
+    }
     #[derive(Debug)]
     pub enum PullRequestReviewDecision {
         APPROVED,
@@ -281,6 +311,12 @@ pub mod search_issues {
     }
     impl Variables {}
     #[derive(Deserialize, Debug)]
+    pub struct UserFragment {
+        pub login: String,
+        #[serde(rename = "databaseId")]
+        pub database_id: Option<Int>,
+    }
+    #[derive(Deserialize, Debug)]
     pub struct ResponseData {
         pub search: SearchIssuesSearch,
     }
@@ -306,10 +342,28 @@ pub mod search_issues {
         pub number: Int,
         #[serde(rename = "databaseId")]
         pub database_id: Option<Int>,
+        pub url: URI,
+        pub author: Option<SearchIssuesSearchNodesOnIssueAuthor>,
+        pub repository: SearchIssuesSearchNodesOnIssueRepository,
+        pub state: IssueState,
+        #[serde(rename = "createdAt")]
+        pub created_at: DateTime,
         #[serde(rename = "updatedAt")]
         pub updated_at: DateTime,
-        pub repository: SearchIssuesSearchNodesOnIssueRepository,
+        #[serde(rename = "closedAt")]
+        pub closed_at: Option<DateTime>,
+        pub comments: SearchIssuesSearchNodesOnIssueComments,
     }
+    #[derive(Deserialize, Debug)]
+    #[serde(tag = "__typename")]
+    pub enum SearchIssuesSearchNodesOnIssueAuthor {
+        Bot,
+        EnterpriseUserAccount,
+        Mannequin,
+        Organization,
+        User(SearchIssuesSearchNodesOnIssueAuthorOnUser),
+    }
+    pub type SearchIssuesSearchNodesOnIssueAuthorOnUser = UserFragment;
     #[derive(Deserialize, Debug)]
     pub struct SearchIssuesSearchNodesOnIssueRepository {
         pub owner: SearchIssuesSearchNodesOnIssueRepositoryOwner,
@@ -328,6 +382,26 @@ pub mod search_issues {
         User,
     }
     #[derive(Deserialize, Debug)]
+    pub struct SearchIssuesSearchNodesOnIssueComments {
+        pub nodes:
+            Option<Vec<Option<SearchIssuesSearchNodesOnIssueCommentsNodes>>>,
+    }
+    #[derive(Deserialize, Debug)]
+    pub struct SearchIssuesSearchNodesOnIssueCommentsNodes {
+        pub author: Option<SearchIssuesSearchNodesOnIssueCommentsNodesAuthor>,
+    }
+    #[derive(Deserialize, Debug)]
+    #[serde(tag = "__typename")]
+    pub enum SearchIssuesSearchNodesOnIssueCommentsNodesAuthor {
+        Bot,
+        EnterpriseUserAccount,
+        Mannequin,
+        Organization,
+        User(SearchIssuesSearchNodesOnIssueCommentsNodesAuthorOnUser),
+    }
+    pub type SearchIssuesSearchNodesOnIssueCommentsNodesAuthorOnUser =
+        UserFragment;
+    #[derive(Deserialize, Debug)]
     pub struct SearchIssuesSearchNodesOnPullRequest {
         pub title: String,
         pub number: Int,
@@ -341,6 +415,12 @@ pub mod search_issues {
         pub is_draft: Boolean,
         #[serde(rename = "totalCommentsCount")]
         pub total_comments_count: Option<Int>,
+        #[serde(rename = "reviewRequests")]
+        pub review_requests:
+            Option<SearchIssuesSearchNodesOnPullRequestReviewRequests>,
+        #[serde(rename = "reviewDecision")]
+        pub review_decision: Option<PullRequestReviewDecision>,
+        pub reviews: Option<SearchIssuesSearchNodesOnPullRequestReviews>,
         #[serde(rename = "createdAt")]
         pub created_at: DateTime,
         #[serde(rename = "updatedAt")]
@@ -349,9 +429,6 @@ pub mod search_issues {
         pub closed_at: Option<DateTime>,
         #[serde(rename = "mergedAt")]
         pub merged_at: Option<DateTime>,
-        #[serde(rename = "reviewDecision")]
-        pub review_decision: Option<PullRequestReviewDecision>,
-        pub reviews: Option<SearchIssuesSearchNodesOnPullRequestReviews>,
     }
     #[derive(Deserialize, Debug)]
     #[serde(tag = "__typename")]
@@ -362,12 +439,7 @@ pub mod search_issues {
         Organization,
         User(SearchIssuesSearchNodesOnPullRequestAuthorOnUser),
     }
-    #[derive(Deserialize, Debug)]
-    pub struct SearchIssuesSearchNodesOnPullRequestAuthorOnUser {
-        pub login: String,
-        #[serde(rename = "databaseId")]
-        pub database_id: Option<Int>,
-    }
+    pub type SearchIssuesSearchNodesOnPullRequestAuthorOnUser = UserFragment;
     #[derive(Deserialize, Debug)]
     pub struct SearchIssuesSearchNodesOnPullRequestRepository {
         pub owner: SearchIssuesSearchNodesOnPullRequestRepositoryOwner,
@@ -385,6 +457,23 @@ pub mod search_issues {
         Organization,
         User,
     }
+    #[derive(Deserialize, Debug)]
+    pub struct SearchIssuesSearchNodesOnPullRequestReviewRequests {
+        pub nodes: Option<
+            Vec<
+                Option<SearchIssuesSearchNodesOnPullRequestReviewRequestsNodes>,
+            >,
+        >,
+    }
+    #[derive(Deserialize, Debug)]
+    pub struct SearchIssuesSearchNodesOnPullRequestReviewRequestsNodes { # [serde (rename = "requestedReviewer")] pub requested_reviewer : Option < SearchIssuesSearchNodesOnPullRequestReviewRequestsNodesRequestedReviewer > , }
+    #[derive(Deserialize, Debug)]
+    #[serde(tag = "__typename")]
+    pub enum SearchIssuesSearchNodesOnPullRequestReviewRequestsNodesRequestedReviewer
+    {
+        Mannequin , Team , User (SearchIssuesSearchNodesOnPullRequestReviewRequestsNodesRequestedReviewerOnUser) }
+    pub type SearchIssuesSearchNodesOnPullRequestReviewRequestsNodesRequestedReviewerOnUser =
+        UserFragment;
     #[derive(Deserialize, Debug)]
     pub struct SearchIssuesSearchNodesOnPullRequestReviews {
         #[serde(rename = "totalCount")]

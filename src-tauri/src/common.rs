@@ -28,6 +28,15 @@ pub fn datetime_to_ts(datetime: &str) -> i64 {
     return parsed.timestamp();
 }
 
+/// Transforms an optional `chrono::DateTime` to an optional `i64` timestamp.
+///
+pub fn dt_opt_to_ts(dt: &Option<chrono::DateTime<chrono::Utc>>) -> Option<i64> {
+    match &dt {
+        None => None,
+        Some(v) => Some(v.timestamp()),
+    }
+}
+
 pub fn ts_to_datetime(ts: i64) -> Result<chrono::DateTime<chrono::Utc>, ()> {
     if !ts.is_positive() {
         return Err(());

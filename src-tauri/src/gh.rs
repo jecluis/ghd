@@ -14,9 +14,9 @@
 
 use sqlx::Row;
 
-use crate::{common, db::DB, errors::GHDError};
+use crate::{db::DB, errors::GHDError};
 
-use self::types::{GithubUser, PullRequestEntry};
+use self::types::{GithubUser, PullRequestTableEntry};
 
 pub mod api;
 pub mod gql;
@@ -267,7 +267,8 @@ impl Github {
             }
         };
 
-        let res = match gql::get_user_info(&token, &login).await {
+        // let res = match gql::get_user_info(&token, &login).await {
+        let res = match gql::get_user_open_issues(&token, &login).await {
             Ok(info) => info,
             Err(err) => {
                 panic!("Unexpected error populating user from GQL: {:?}", err);
@@ -281,19 +282,21 @@ impl Github {
             }
         };
 
-        if let Err(err) = prs::consume_prs(&mut tx, &res.prs).await {
+        if let Err(err) =
+            prs::consume_issues(&mut tx, &user.id, &res.issues, &res.prs).await
+        {
             panic!(
                 "Error consuming pull requests when populating user: {:?}",
                 err
             );
-        }
-        users::update_user_refresh(&mut tx, &res.user.id, &chrono::Utc::now())
-            .await;
+        };
+
+        users::update_user_refresh(&mut tx, &user.id, &res.when).await;
 
         tx.commit().await.unwrap_or_else(|err| {
             panic!(
                 "Unable to commit populate transaction for user '{}': {}",
-                res.user.login, err
+                user.login, err
             );
         });
 
@@ -363,7 +366,9 @@ impl Github {
             ret = false;
         }
 
-        if let Err(err) = prs::update_prs(&mut tx, &res.prs).await {
+        if let Err(err) =
+            prs::consume_issues(&mut tx, &user.id, &res.issues, &res.prs).await
+        {
             panic!(
                 "Error updating pull requests for user '{}': {:?}",
                 login, err
@@ -381,25 +386,14 @@ impl Github {
         Ok(ret)
     }
 
-    pub async fn get_user_refresh(
-        self: &Self,
-        db: &DB,
-        login: &String,
-    ) -> Result<chrono::DateTime<chrono::Utc>, GHDError> {
-        let user = match self.get_user_by_login(&db, &login).await {
-            Ok(res) => res,
-            Err(err) => return Err(err),
-        };
-
-        return refresh::get_user_refresh(&db, &user.id).await;
-    }
-
+    /// Obtain all Pull Requests from the provided author `login`.
+    ///
     pub async fn get_pulls_by_author(
         self: &Self,
         db: &DB,
         login: &String,
-    ) -> Result<Vec<PullRequestEntry>, GHDError> {
-        prs::get_by_author(&db, &self, &login).await
+    ) -> Result<Vec<PullRequestTableEntry>, GHDError> {
+        prs::get_prs_by_author(&db, &login).await
     }
 
     /// Marks a specified Pull Request as having been viewed.
