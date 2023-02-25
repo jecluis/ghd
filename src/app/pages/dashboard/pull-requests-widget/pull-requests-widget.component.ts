@@ -81,7 +81,7 @@ export class PullRequestsWidgetComponent
     if (event.name === TauriService.events.USER_DATA_UPDATE) {
       console.debug(`received user data update for user '${this.user.login}'`);
       this.zone.run(() => {
-        this.updateUser();
+        this.updateUser().then(() => {});
       });
     }
   }
