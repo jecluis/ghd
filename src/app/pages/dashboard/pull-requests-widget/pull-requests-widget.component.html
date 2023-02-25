@@ -21,14 +21,27 @@ limitations under the License.
 
   <div class="card-body">
 
-    <table class="table">
+    <h5>Recent</h5>
+    <div *ngIf="ownPRs.toView.length === 0">
+      <p class="text-center fw-bold">
+        All done!
+      </p>
+      <hr />
+    </div>
+    <table class="table" *ngIf="ownPRs.toView.length > 0">
       <tbody>
         <tr *ngFor="let pr of ownPRs.toView">
           <td>
-            <button type="button" class="btn btn-sm btn-outline-primary"
-                    (click)="markViewed(pr)">
-              Viewed
-            </button>
+            <i class="mdi mdi-check-circle-outline text-primary" placement="top"
+               ngbTooltip="Mark Viewed" (click)="markViewed(pr)"
+               *ngIf="!isMarkingViewed"></i>
+            <i class="mdi mdi-check-circle-outline text-muted"
+               *ngIf="isMarkingViewed && markingViewed !== pr.id"></i>
+            <div class="spinner-border spinner-border-sm text-success"
+                 role="status"
+                 *ngIf="isMarkingViewed && markingViewed === pr.id">
+              <span class="visually-hidden">Marking Viewed...</span>
+            </div>
           </td>
           <td>
             <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
@@ -48,6 +61,9 @@ limitations under the License.
     <table class="table">
       <tbody>
         <tr *ngFor="let pr of ownPRs.viewed">
+          <td>
+            <i class="mdi mdi-check-bold text-success"></i>
+          </td>
           <td>
             <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
             </ghd-repo-name>
@@ -70,14 +86,26 @@ limitations under the License.
 
   <div class="card-body">
 
-    <table class="table">
+    <div *ngIf="involved.toView.length === 0">
+      <p class="text-center fw-bold">
+        All done!
+      </p>
+      <hr />
+    </div>
+    <table class="table" *ngIf="involved.toView.length > 0">
       <tbody>
         <tr *ngFor="let pr of involved.toView">
           <td>
-            <button type="button" class="btn btn-sm btn-outline-primary"
-                    (click)="markViewed(pr)">
-              Viewed
-            </button>
+            <i class="mdi mdi-check-circle-outline text-primary" placement="top"
+               ngbTooltip="Mark Viewed" (click)="markViewed(pr)"
+               *ngIf="!isMarkingViewed"></i>
+            <i class="mdi mdi-check-circle-outline text-muted"
+               *ngIf="isMarkingViewed && markingViewed !== pr.id"></i>
+            <div class="spinner-border spinner-border-sm text-success"
+                 role="status"
+                 *ngIf="isMarkingViewed && markingViewed === pr.id">
+              <span class="visually-hidden">Marking Viewed...</span>
+            </div>
           </td>
           <td>
             <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
@@ -98,6 +126,9 @@ limitations under the License.
     <table class="table">
       <tbody>
         <tr *ngFor="let pr of involved.viewed">
+          <td>
+            <i class="mdi mdi-check-bold text-success"></i>
+          </td>
           <td>
             <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
             </ghd-repo-name>

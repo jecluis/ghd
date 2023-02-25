@@ -59,11 +59,14 @@ export class PullRequestsWidgetComponent
     viewed: [],
   };
 
+  public isMarkingViewed = false;
+  public markingViewed?: number;
+
   public constructor(private zone: NgZone, private tauriSvc: TauriService) {}
 
   public ngOnInit(): void {
     this.tauriSvc.register(TauriService.events.USER_DATA_UPDATE, this);
-    this.updateUser();
+    this.updateUser().then(() => {});
   }
 
   public ngOnDestroy(): void {
@@ -84,17 +87,35 @@ export class PullRequestsWidgetComponent
   }
 
   public markViewed(pr: PRTableEntry): void {
+    this.isMarkingViewed = true;
+    this.markingViewed = pr.id;
     this.tauriSvc
       .markPullRequestViewed(pr.id)
       .then(() => {
-        this.updateUser();
+        this.updateUser().then(() => {
+          this.isMarkingViewed = false;
+          this.markingViewed = undefined;
+        });
       })
       .catch(() => {
         console.error(`unable to mark PR id ${pr.id} as viewed`);
       });
   }
 
-  private updateUser(): void {
+  private async updateUser(): Promise<void> {
+    try {
+      let prs = await this.tauriSvc.getPullRequestsByAuthor(this.user.login);
+      this.ownPRs = this.processPRs(prs);
+
+      let involved = await this.tauriSvc.getInvolvedPullRequests(
+        this.user.login,
+      );
+      this.involved = this.processPRs(involved);
+    } catch (err) {
+      console.error("unable to update user: ", err);
+    }
+
+    /*
     this.tauriSvc
       .getPullRequestsByAuthor(this.user.login)
       .then((res: PullRequestEntry[]) => {
@@ -114,6 +135,7 @@ export class PullRequestsWidgetComponent
       .catch(() => {
         console.error("unable to obtain involved prs for ", this.user.login);
       });
+    */
   }
 
   private processPRs(prs: PullRequestEntry[]): TrackedPRs {
