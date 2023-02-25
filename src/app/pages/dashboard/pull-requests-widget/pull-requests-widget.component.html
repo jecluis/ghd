@@ -30,7 +30,10 @@ limitations under the License.
               Viewed
             </button>
           </td>
-          <td>{{pr.repo}}</td>
+          <td>
+            <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
+            </ghd-repo-name>
+          </td>
           <td>{{pr.state}}</td>
           <td>#{{pr.number}}</td>
           <td>{{pr.title}}</td>
@@ -45,7 +48,10 @@ limitations under the License.
     <table class="table">
       <tbody>
         <tr *ngFor="let pr of ownPRs.viewed">
-          <td>{{pr.repo}}</td>
+          <td>
+            <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
+            </ghd-repo-name>
+          </td>
           <td>{{pr.state}}</td>
           <td>#{{pr.number}}</td>
           <td>{{pr.title}}</td>
@@ -73,7 +79,10 @@ limitations under the License.
               Viewed
             </button>
           </td>
-          <td>{{pr.repo}}</td>
+          <td>
+            <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
+            </ghd-repo-name>
+          </td>
           <td>{{pr.author}}</td>
           <td>{{pr.state}}</td>
           <td>#{{pr.number}}</td>
@@ -89,7 +98,10 @@ limitations under the License.
     <table class="table">
       <tbody>
         <tr *ngFor="let pr of involved.viewed">
-          <td>{{pr.repo}}</td>
+          <td>
+            <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
+            </ghd-repo-name>
+          </td>
           <td>{{pr.author}}</td>
           <td>{{pr.state}}</td>
           <td>#{{pr.number}}</td>

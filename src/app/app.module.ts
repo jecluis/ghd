@@ -11,6 +11,7 @@ import { NgbModalModule } from "@ng-bootstrap/ng-bootstrap";
 import { TrackUserModalComponent } from './pages/dashboard/track-user-modal/track-user-modal.component';
 import { DashboardViewComponent } from './pages/dashboard/dashboard-view/dashboard-view.component';
 import { PullRequestsWidgetComponent } from './pages/dashboard/pull-requests-widget/pull-requests-widget.component';
+import { RepoNameComponent } from './shared/components/repo-name/repo-name.component';
 
 @NgModule({
   declarations: [
@@ -21,6 +22,7 @@ import { PullRequestsWidgetComponent } from './pages/dashboard/pull-requests-wid
     TrackUserModalComponent,
     DashboardViewComponent,
     PullRequestsWidgetComponent,
+    RepoNameComponent,
   ],
   imports: [
     BrowserModule,
