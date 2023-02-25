@@ -59,6 +59,7 @@ pub async fn get_prs_by_author(
             pull_requests.id = issues.id
         WHERE
             issues.author = ?
+        ORDER BY issues.updated_at DESC
         ",
     )
     .bind(&login)
