@@ -12,6 +12,7 @@ import { TrackUserModalComponent } from "./pages/dashboard/track-user-modal/trac
 import { DashboardViewComponent } from "./pages/dashboard/dashboard-view/dashboard-view.component";
 import { PullRequestsWidgetComponent } from "./pages/dashboard/pull-requests-widget/pull-requests-widget.component";
 import { RepoNameComponent } from "./shared/components/repo-name/repo-name.component";
+import { PRStateComponent } from "./shared/components/pr-state/pr-state.component";
 
 @NgModule({
   declarations: [
@@ -23,6 +24,7 @@ import { RepoNameComponent } from "./shared/components/repo-name/repo-name.compo
     DashboardViewComponent,
     PullRequestsWidgetComponent,
     RepoNameComponent,
+    PRStateComponent,
   ],
   imports: [
     BrowserModule,

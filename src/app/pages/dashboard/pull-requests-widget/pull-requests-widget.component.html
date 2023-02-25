@@ -47,11 +47,13 @@ limitations under the License.
             <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
             </ghd-repo-name>
           </td>
-          <td>{{pr.state}}</td>
+          <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
           <td>#{{pr.number}}</td>
           <td>{{pr.title}}</td>
           <td>{{pr.lastUpdate}}</td>
-          <td>{{pr.reviewDecision}}</td>
+          <td>
+            <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -68,9 +70,12 @@ limitations under the License.
             <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
             </ghd-repo-name>
           </td>
-          <td>{{pr.state}}</td>
+          <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
           <td>#{{pr.number}}</td>
           <td>{{pr.title}}</td>
+          <td>
+            <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -112,11 +117,13 @@ limitations under the License.
             </ghd-repo-name>
           </td>
           <td>{{pr.author}}</td>
-          <td>{{pr.state}}</td>
+          <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
           <td>#{{pr.number}}</td>
           <td>{{pr.title}}</td>
           <td>{{pr.lastUpdate}}</td>
-          <td>{{pr.reviewDecision}}</td>
+          <td>
+            <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -134,9 +141,12 @@ limitations under the License.
             </ghd-repo-name>
           </td>
           <td>{{pr.author}}</td>
-          <td>{{pr.state}}</td>
+          <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
           <td>#{{pr.number}}</td>
           <td>{{pr.title}}</td>
+          <td>
+            <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
+          </td>
         </tr>
       </tbody>
     </table>

@@ -1,0 +1,33 @@
+<!--
+Copyright 2023 Joao Eduardo Luis <joao@abysmo.io>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<div *ngIf="!!state">
+  <i class="mdi mdi-source-pull text-success" placement="top" ngbTooltip="open"
+     *ngIf="state === 'open'"></i>
+  <i class="mdi mdi-source-pull text-danger" placement="top" ngbTooltip="closed"
+     *ngIf="state === 'closed'"></i>
+  <i class="mdi mdi-source-pull" style="color: #9400ff" placement="top"
+     ngbTooltip="merged" *ngIf="state === 'closed'"></i>
+</div>
+
+<div *ngIf="!!decision">
+  <i class="mdi mdi-message-question-outline text-primary fs-5" placement="top"
+     ngbTooltip="Review Required" *ngIf="decision === 'review_required'"></i>
+  <i class="mdi mdi-message-alert text-danger fs-5" placement="top"
+     ngbTooltip="Changes Requested"
+     *ngIf="decision === 'changes_requested'"></i>
+  <i class="mdi mdi-message-check text-success fs-5" placement="top"
+     ngbTooltip="Approved" *ngIf="decision === 'approved'"></i>
+</div>
