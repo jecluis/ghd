@@ -28,6 +28,7 @@ type PRTableEntry = {
   title: string;
   author: string;
   repoOwner: string;
+  url: string;
   repoName: string;
   state: string;
   lastUpdate: string;
@@ -154,6 +155,7 @@ export class PullRequestsWidgetComponent
         author: pr.author,
         repoOwner: pr.repo_owner,
         repoName: pr.repo_name,
+        url: pr.url,
         state: pr.state,
         lastUpdate: lastUpdate,
         reviewDecision: pr.review_decision,

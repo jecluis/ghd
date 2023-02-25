@@ -49,7 +49,11 @@ limitations under the License.
           </td>
           <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
           <td>#{{pr.number}}</td>
-          <td>{{pr.title}}</td>
+          <td>
+            <a [href]="pr.url" target="_blank">
+              {{pr.title}}
+            </a>
+          </td>
           <td>{{pr.lastUpdate}}</td>
           <td>
             <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
@@ -72,7 +76,11 @@ limitations under the License.
           </td>
           <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
           <td>#{{pr.number}}</td>
-          <td>{{pr.title}}</td>
+          <td>
+            <a [href]="pr.url" target="_blank">
+              {{pr.title}}
+            </a>
+          </td>
           <td>
             <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
           </td>
@@ -119,7 +127,11 @@ limitations under the License.
           <td>{{pr.author}}</td>
           <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
           <td>#{{pr.number}}</td>
-          <td>{{pr.title}}</td>
+          <td>
+            <a [href]="pr.url" target="_blank">
+              {{pr.title}}
+            </a>
+          </td>
           <td>{{pr.lastUpdate}}</td>
           <td>
             <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
@@ -143,7 +155,11 @@ limitations under the License.
           <td>{{pr.author}}</td>
           <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
           <td>#{{pr.number}}</td>
-          <td>{{pr.title}}</td>
+          <td>
+            <a [href]="pr.url" target="_blank">
+              {{pr.title}}
+            </a>
+          </td>
           <td>
             <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
           </td>
