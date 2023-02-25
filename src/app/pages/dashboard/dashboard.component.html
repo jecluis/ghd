@@ -20,14 +20,6 @@ limitations under the License.
 
     <ul class="nav nav-pills nav-flush flex-column mb-auto text-center mt-3">
 
-      <li class="nav-item">
-        <a class="nav-link py-2 border-bottom rounded-0"
-           (click)="selectUser(user)" [class.active]="isSelected(user)">
-          <img class="rounded-circle" src="{{user?.avatar_url}}"
-               style="width: 36px; height: 36px" />
-        </a>
-      </li>
-
       <li class="nav-item" *ngFor="let tracked of trackedUsers">
         <a class="nav-link py-2 border-bottom rounded-0"
            (click)="selectUser(tracked)" [class.active]="isSelected(tracked)">
@@ -50,8 +42,10 @@ limitations under the License.
       <h4>Dashboard not available until a valid token is set.</h4>
     </div>
 
-    <ghd-dashboard-view *ngIf="!!selectedUser"
-                        [user]="selectedUser"></ghd-dashboard-view>
+    <div *ngFor="let user of trackedUsers">
+      <ghd-dashboard-view *ngIf="!!selectedUser && selectedUser.login === user.login"
+                          [user]="selectedUser"></ghd-dashboard-view>
+    </div>
 
 
   </div>

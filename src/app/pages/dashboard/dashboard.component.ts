@@ -41,7 +41,6 @@ export class DashboardComponent
   implements OnInit, OnDestroy, TauriEventListener
 {
   public isAvailable = false;
-  public user?: GithubUser;
   public trackedUsers: GithubUser[] = [];
   public selectedUser?: GithubUser;
 
@@ -65,7 +64,7 @@ export class DashboardComponent
         if (!mainUser) {
           return;
         }
-        this.user = res[mainUser];
+        let user = res[mainUser];
         let userlst: GithubUser[] = [];
         Object.keys(res).forEach((login: string) => {
           if (login === mainUser) {
@@ -73,9 +72,9 @@ export class DashboardComponent
           }
           userlst.push(res[login]);
         });
-        this.trackedUsers = userlst;
+        this.trackedUsers = [user, ...userlst];
         if (!this.selectedUser) {
-          this.selectedUser = this.user;
+          this.selectedUser = user;
           console.log("select default user: ", this.selectedUser);
         }
       },

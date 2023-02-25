@@ -115,7 +115,11 @@ export class TauriService {
     return invoke("pr_mark_viewed", { prid: prid });
   }
 
-  public getPullRequestsByLogin(login: string): Promise<PullRequestEntry[]> {
-    return invoke("pr_get_list_by_login", { login: login });
+  public getPullRequestsByAuthor(login: string): Promise<PullRequestEntry[]> {
+    return invoke("pr_get_list_by_author", { login: login });
+  }
+
+  public getInvolvedPullRequests(login: string): Promise<PullRequestEntry[]> {
+    return invoke("pr_get_list_by_involved", { login: login });
   }
 }

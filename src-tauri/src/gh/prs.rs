@@ -85,7 +85,7 @@ pub async fn get_involved_prs(
         SELECT
             issues.*, pull_requests.is_draft, pull_requests.merged_at,
             pull_requests.review_decision
-        FROM pull_requests LEFT JOIN (
+        FROM pull_requests INNER JOIN (
             SELECT
                 issues.*
             FROM
@@ -99,9 +99,11 @@ pub async fn get_involved_prs(
         ) AS
             issues
         ON
-            pull_requests.id = issues.id;
+            pull_requests.id = issues.id AND issues.author != ?
+        ORDER BY issues.updated_at DESC
         ",
     )
+    .bind(&login)
     .bind(&login)
     .fetch_all(db.pool())
     .await

@@ -33,62 +33,9 @@ import { GithubUser, PullRequestEntry } from "src/app/shared/types";
   templateUrl: "./dashboard-view.component.html",
   styleUrls: ["./dashboard-view.component.scss"],
 })
-export class DashboardViewComponent
-  implements OnInit, OnDestroy, OnChanges, TauriEventListener
-{
+export class DashboardViewComponent {
   @Input()
   public user!: GithubUser;
 
-  public iterationN = 0;
-  public prs: PullRequestEntry[] = [];
-
-  public constructor(private zone: NgZone, private tauriSvc: TauriService) {}
-
-  public ngOnInit(): void {
-    this.tauriSvc.register(TauriService.events.ITERATION, this);
-  }
-
-  public ngOnChanges(changes: SimpleChanges): void {
-    if ("user" in changes) {
-      this.updateUser();
-    }
-  }
-
-  public ngOnDestroy(): void {
-    this.tauriSvc.unregister(TauriService.events.ITERATION, this);
-  }
-
-  public getListenerID(): string {
-    return "dashboard-view-listener";
-  }
-
-  public handleEvent(event: TauriListenerEvent): void {
-    const evname = event.name;
-    if (evname === TauriService.events.ITERATION) {
-      this.zone.run(() => {
-        this.iterationN = <number>event.payload;
-      });
-    }
-  }
-
-  public markViewed(pr: PullRequestEntry): void {
-    this.tauriSvc
-      .markPullRequestViewed(pr.id)
-      .then(() => {})
-      .catch(() => {
-        console.error(`unable to mark pr ${pr.id} as viewed`);
-      });
-  }
-
-  private updateUser() {
-    this.tauriSvc
-      .getPullRequestsByLogin(this.user.login)
-      .then((res: PullRequestEntry[]) => {
-        this.prs = res;
-        console.log(`prs(${this.user.login}): `, res);
-      })
-      .catch(() => {
-        console.error("unable to obtain pull requests for ", this.user.login);
-      });
-  }
+  public constructor() {}
 }

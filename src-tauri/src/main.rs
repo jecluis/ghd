@@ -156,7 +156,7 @@ async fn pr_mark_viewed(
 }
 
 #[tauri::command]
-async fn pr_get_list_by_login(
+async fn pr_get_list_by_author(
     login: String,
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<Vec<gh::types::PullRequestTableEntry>, ()> {
@@ -165,6 +165,21 @@ async fn pr_get_list_by_login(
     let gh = &state.gh;
 
     match gh.get_pulls_by_author(&db, &login).await {
+        Ok(res) => Ok(res),
+        Err(_) => Err(()),
+    }
+}
+
+#[tauri::command]
+async fn pr_get_list_by_involved(
+    login: String,
+    mstate: tauri::State<'_, ManagedState>,
+) -> Result<Vec<gh::types::PullRequestTableEntry>, ()> {
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+
+    match gh.get_involved_pulls(&db, &login).await {
         Ok(res) => Ok(res),
         Err(_) => Err(()),
     }
@@ -214,7 +229,8 @@ async fn main() {
             add_tracked_user,
             check_user_exists,
             pr_mark_viewed,
-            pr_get_list_by_login,
+            pr_get_list_by_author,
+            pr_get_list_by_involved,
         ])
         .setup(|app| {
             let handle = app.app_handle();

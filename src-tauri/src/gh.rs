@@ -396,6 +396,17 @@ impl Github {
         prs::get_prs_by_author(&db, &login).await
     }
 
+    /// Obtain all Pull Requests the provided `login` is involved with, except
+    /// those that have been authored by `login`.
+    ///
+    pub async fn get_involved_pulls(
+        self: &Self,
+        db: &DB,
+        login: &String,
+    ) -> Result<Vec<PullRequestTableEntry>, GHDError> {
+        prs::get_involved_prs(&db, &login).await
+    }
+
     /// Marks a specified Pull Request as having been viewed.
     ///
     /// # Arguments

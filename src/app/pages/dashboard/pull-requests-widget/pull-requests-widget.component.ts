@@ -24,9 +24,16 @@ type PRTableEntry = {
   id: number;
   number: number;
   title: string;
+  author: string;
   repo: string;
   state: string;
   lastUpdate: string;
+  reviewDecision: string;
+};
+
+type TrackedPRs = {
+  toView: PRTableEntry[];
+  viewed: PRTableEntry[];
 };
 
 @Component({
@@ -40,8 +47,14 @@ export class PullRequestsWidgetComponent
   @Input()
   public user!: GithubUser;
 
-  public toViewPRs: PRTableEntry[] = [];
-  public viewedPRs: PRTableEntry[] = [];
+  public ownPRs: TrackedPRs = {
+    toView: [],
+    viewed: [],
+  };
+  public involved: TrackedPRs = {
+    toView: [],
+    viewed: [],
+  };
 
   public constructor(private zone: NgZone, private tauriSvc: TauriService) {}
 
@@ -80,26 +93,39 @@ export class PullRequestsWidgetComponent
 
   private updateUser(): void {
     this.tauriSvc
-      .getPullRequestsByLogin(this.user.login)
+      .getPullRequestsByAuthor(this.user.login)
       .then((res: PullRequestEntry[]) => {
-        this.processPRs(res);
+        let prs = this.processPRs(res);
+        this.ownPRs = prs;
       })
       .catch(() => {
         console.error("unable to obtain pull requests for ", this.user.login);
       });
+
+    this.tauriSvc
+      .getInvolvedPullRequests(this.user.login)
+      .then((res: PullRequestEntry[]) => {
+        let prs = this.processPRs(res);
+        this.involved = prs;
+      })
+      .catch(() => {
+        console.error("unable to obtain involved prs for ", this.user.login);
+      });
   }
 
-  private processPRs(prs: PullRequestEntry[]): void {
+  private processPRs(prs: PullRequestEntry[]): TrackedPRs {
     let toView: PRTableEntry[] = [];
     let viewed: PRTableEntry[] = [];
     prs.forEach((pr: PullRequestEntry) => {
-      let entry = {
+      let entry: PRTableEntry = {
         id: pr.id,
         number: pr.number,
         title: pr.title,
+        author: pr.author,
         repo: `${pr.repo_owner}/${pr.repo_name}`,
         state: pr.state,
         lastUpdate: "?? ago",
+        reviewDecision: pr.review_decision,
       };
       if (!!pr.last_viewed && pr.last_viewed >= pr.updated_at) {
         viewed.push(entry);
@@ -107,7 +133,6 @@ export class PullRequestsWidgetComponent
         toView.push(entry);
       }
     });
-    this.toViewPRs = toView;
-    this.viewedPRs = viewed;
+    return { toView: toView, viewed: viewed };
   }
 }
