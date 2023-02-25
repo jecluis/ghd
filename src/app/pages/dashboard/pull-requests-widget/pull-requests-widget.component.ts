@@ -19,6 +19,8 @@ import {
   TauriService,
 } from "src/app/shared/services/tauri.service";
 import { GithubUser, PullRequestEntry } from "src/app/shared/types";
+import formatDistance from "date-fns/formatDistance";
+import toDate from "date-fns/toDate";
 
 type PRTableEntry = {
   id: number;
@@ -116,7 +118,12 @@ export class PullRequestsWidgetComponent
   private processPRs(prs: PullRequestEntry[]): TrackedPRs {
     let toView: PRTableEntry[] = [];
     let viewed: PRTableEntry[] = [];
+    let now = new Date();
     prs.forEach((pr: PullRequestEntry) => {
+      // we get a timestamp in seconds, but we need it in milliseconds.
+      let updatedAt = toDate(pr.updated_at * 1000);
+      let lastUpdate = formatDistance(updatedAt, now);
+
       let entry: PRTableEntry = {
         id: pr.id,
         number: pr.number,
@@ -124,7 +131,7 @@ export class PullRequestsWidgetComponent
         author: pr.author,
         repo: `${pr.repo_owner}/${pr.repo_name}`,
         state: pr.state,
-        lastUpdate: "?? ago",
+        lastUpdate: lastUpdate,
         reviewDecision: pr.review_decision,
       };
       if (!!pr.last_viewed && pr.last_viewed >= pr.updated_at) {
