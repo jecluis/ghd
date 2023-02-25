@@ -264,7 +264,7 @@ pub async fn consume_issues(
 pub async fn mark_viewed(db: &DB, prid: &i64) -> Result<(), GHDError> {
     let now = chrono::Utc::now().timestamp();
 
-    match sqlx::query("UPDATE pull_request SET last_viewed = ? WHERE id = ?")
+    match sqlx::query("UPDATE issues SET last_viewed = ? WHERE id = ?")
         .bind(&now)
         .bind(&prid)
         .execute(db.pool())
