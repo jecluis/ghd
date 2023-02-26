@@ -21,6 +21,7 @@ import {
 import { GithubUser, PullRequestEntry } from "src/app/shared/types";
 import formatDistance from "date-fns/formatDistance";
 import toDate from "date-fns/toDate";
+import { interval, map, Observable } from "rxjs";
 
 type PRTableEntry = {
   id: number;
@@ -31,7 +32,8 @@ type PRTableEntry = {
   url: string;
   repoName: string;
   state: string;
-  lastUpdate: string;
+  lastUpdate: number;
+  lastUpdateObs: Observable<string>;
   reviewDecision: string;
 };
 
@@ -103,6 +105,13 @@ export class PullRequestsWidgetComponent
       });
   }
 
+  public getDateDiff(value: number): string {
+    // we get a timestamp in seconds, but we need it in milliseconds.
+    let now = new Date();
+    let updatedAt = toDate(value * 1000);
+    return formatDistance(updatedAt, now);
+  }
+
   private async updateUser(): Promise<void> {
     try {
       let prs = await this.tauriSvc.getPullRequestsByAuthor(this.user.login);
@@ -115,39 +124,12 @@ export class PullRequestsWidgetComponent
     } catch (err) {
       console.error("unable to update user: ", err);
     }
-
-    /*
-    this.tauriSvc
-      .getPullRequestsByAuthor(this.user.login)
-      .then((res: PullRequestEntry[]) => {
-        let prs = this.processPRs(res);
-        this.ownPRs = prs;
-      })
-      .catch(() => {
-        console.error("unable to obtain pull requests for ", this.user.login);
-      });
-
-    this.tauriSvc
-      .getInvolvedPullRequests(this.user.login)
-      .then((res: PullRequestEntry[]) => {
-        let prs = this.processPRs(res);
-        this.involved = prs;
-      })
-      .catch(() => {
-        console.error("unable to obtain involved prs for ", this.user.login);
-      });
-    */
   }
 
   private processPRs(prs: PullRequestEntry[]): TrackedPRs {
     let toView: PRTableEntry[] = [];
     let viewed: PRTableEntry[] = [];
-    let now = new Date();
     prs.forEach((pr: PullRequestEntry) => {
-      // we get a timestamp in seconds, but we need it in milliseconds.
-      let updatedAt = toDate(pr.updated_at * 1000);
-      let lastUpdate = formatDistance(updatedAt, now);
-
       let entry: PRTableEntry = {
         id: pr.id,
         number: pr.number,
@@ -157,7 +139,10 @@ export class PullRequestsWidgetComponent
         repoName: pr.repo_name,
         url: pr.url,
         state: pr.state,
-        lastUpdate: lastUpdate,
+        lastUpdate: pr.updated_at,
+        lastUpdateObs: interval(1000).pipe(
+          map(() => this.getDateDiff(pr.updated_at)),
+        ),
         reviewDecision: pr.review_decision,
       };
       if (!!pr.last_viewed && pr.last_viewed >= pr.updated_at) {

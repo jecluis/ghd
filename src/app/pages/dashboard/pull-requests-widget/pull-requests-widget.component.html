@@ -54,7 +54,7 @@ limitations under the License.
               {{pr.title}}
             </a>
           </td>
-          <td>{{pr.lastUpdate}}</td>
+          <td>{{pr.lastUpdateObs|async}}</td>
           <td>
             <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
           </td>
@@ -132,7 +132,7 @@ limitations under the License.
               {{pr.title}}
             </a>
           </td>
-          <td>{{pr.lastUpdate}}</td>
+          <td>{{pr.lastUpdateObs|async}}</td>
           <td>
             <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
           </td>
