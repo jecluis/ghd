@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=ghd
+Comment=Github Dashboard - An easy to use overview of Github
+Exec=/opt/bin/ghd
+Categories=Development
