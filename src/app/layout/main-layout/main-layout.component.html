@@ -17,25 +17,43 @@ limitations under the License.
 <nav
      class="navbar navbar-expand navbar-dark bg-dark position-fixed top-0 w-100 z-3">
   <div class="container-fluid">
-    <a class="navbar-brand" [routerLink]="'dashboard'">GHD</a>
-  </div>
+    <div class="navbar-brand">
+      <span>GHD</span>
+    </div>
 
-  <div class="collapse navbar-collapse">
 
-    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+    <div class="collapse navbar-collapse">
 
-      <li class="nav-item">
-        <a class="nav-link" [routerLink]="'dashboard'"
-           [routerLinkActive]="'active'">Home</a>
-      </li>
+      <div class="fs-4 me-auto">
+        <a class="navbar-text ms-3 me-auto mb-2 mb-lg-0"
+           href="https://github.com/jecluis/ghd" target="_blank"
+           placement="bottom" ngbTooltip="Repository">
+          <i class="mdi mdi-github"></i>
+        </a>
+        <a class="navbar-text ms-2 me-auto mb-2 mb-lg-0"
+           href="https://github.com/jecluis/ghd/issues" target="_blank"
+           placement="bottom" ngbTooltip="File a Bug">
+          <i class="mdi mdi-bug-outline"></i>
+        </a>
+      </div>
 
-      <li class="nav-item">
-        <a class="nav-link" [routerLink]="'/settings'"
-           [routerLinkActive]="'active'">Settings</a>
-      </li>
+      <span class="navbar-text ms-3 me-auto mb-1 mb-lg-0">v{{version}}</span>
 
-    </ul>
+      <ul class="d-flex navbar-nav me-2 mb-2 mb-lg-0">
 
+        <li class="nav-item">
+          <a class="nav-link" [routerLink]="'dashboard'"
+             [routerLinkActive]="'active'">Home</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" [routerLink]="'/settings'"
+             [routerLinkActive]="'active'">Settings</a>
+        </li>
+
+      </ul>
+
+    </div>
   </div>
 
 </nav>

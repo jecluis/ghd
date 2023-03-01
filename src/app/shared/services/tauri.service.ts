@@ -15,6 +15,7 @@
 import { Injectable } from "@angular/core";
 import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
+import { getVersion as tauriGetVersion } from "@tauri-apps/api/app";
 import { GithubUser, PullRequestEntry } from "../types";
 
 export type TauriListenerEvent = {
@@ -85,6 +86,10 @@ export class TauriService {
     }
     const listenerID = listener.getListenerID();
     listenerMap.delete(listenerID);
+  }
+
+  public async getVersion(): Promise<string> {
+    return await tauriGetVersion();
   }
 
   public getMainUser(): Promise<GithubUser> {
