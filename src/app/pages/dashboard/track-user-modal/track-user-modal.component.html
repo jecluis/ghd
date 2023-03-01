@@ -3,12 +3,12 @@
   <button type="button" class="btn-close" aria-label="Close"
           (click)="close()"></button>
 </div>
-<div class="modal-body">
-  <div class="row">
-    <label for="modal-add-user-input" class="col-2 col-form-label">
+<div class="modal-body container">
+  <div class="row row-cols-1 row-cols-sm-3 gy-2">
+    <label for="modal-add-user-input" class="col col-form-label">
       Username
     </label>
-    <div class="col-8">
+    <div class="col">
       <input class="form-control" id="modal-add-user-input" type="text"
              placeholder="username" [formControl]="usernameFormControl"
              [class.is-invalid]="isSet() && (isInvalid() || (checkedUser &&!userExists))"
@@ -25,7 +25,7 @@
         User found!
       </div>
     </div>
-    <div class="col-2">
+    <div class="col">
       <button type="submit" class="btn btn-primary" [disabled]="isAdding ||
                   (checkedUser && (!isSet() || (isSet() && isInvalid())))"
               *ngIf="!isChecking" (click)="checkUserExists()">
