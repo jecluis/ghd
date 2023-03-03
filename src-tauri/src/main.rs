@@ -234,7 +234,8 @@ async fn main() {
         ])
         .setup(|app| {
             let handle = app.app_handle();
-            // let window = app.get_window("main").unwrap();
+            let pinfo = handle.package_info();
+            println!("ghd v{} {}", pinfo.version, pinfo.authors);
             tokio::spawn(async move {
                 let mut bgtask = bg::BGTask::new();
                 bgtask.run(handle).await;
