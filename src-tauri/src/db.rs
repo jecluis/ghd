@@ -14,6 +14,12 @@
 
 use sqlx::{migrate::MigrateDatabase, sqlite::SqliteQueryResult, SqlitePool};
 
+use crate::errors::GHDError;
+
+/// Current DB Schema version
+///
+const GHD_DB_VERSION: u32 = 1;
+
 pub struct DB {
     pub uri: String,
     pub pool: Option<SqlitePool>,
@@ -46,6 +52,12 @@ impl DB {
             match create_db_schema(&self.uri).await {
                 Ok(_) => println!("Database created successfully."),
                 Err(err) => panic!("{}", err),
+            };
+        } else {
+            println!("database exists, maybe migrate?");
+            match maybe_migrate(&self.uri).await {
+                Ok(_) => {}
+                Err(err) => panic!("error migrating db: {:?}", err),
             };
         }
 
@@ -90,7 +102,8 @@ async fn create_db_schema(uri: &str) -> Result<SqliteQueryResult, sqlx::Error> {
         updated_at      INTEGER NOT NULL,
         closed_at       INTEGER,
         is_pull_request BOOL NOT NULL,
-        last_viewed     INTEGER
+        last_viewed     INTEGER,
+        archived_at     INTEGER
     );
     CREATE TABLE IF NOT EXISTS pull_requests (
         id              INTEGER PRIMARY KEY NOT NULL,
@@ -102,6 +115,7 @@ async fn create_db_schema(uri: &str) -> Result<SqliteQueryResult, sqlx::Error> {
     CREATE TABLE IF NOT EXISTS user_issues (
         user_id     INTEGER NOT NULL,
         issue_id    INTEGER NOT NULL,
+        archived    BOOL NOT NULL,
         PRIMARY KEY (user_id, issue_id),
         FOREIGN KEY (user_id) REFERENCES users (id),
         FOREIGN KEY (issue_id) REFERENCES issues (id)
@@ -123,4 +137,97 @@ async fn create_db_schema(uri: &str) -> Result<SqliteQueryResult, sqlx::Error> {
     pool.close().await;
 
     result
+}
+
+async fn maybe_migrate(uri: &str) -> Result<(), GHDError> {
+    let pool = SqlitePool::connect(uri).await.unwrap_or_else(|err| {
+        panic!("Unable to connect to db at '{}': {}", uri, err);
+    });
+
+    let version = match sqlx::query_scalar::<_, u32>(
+        "SELECT user_version from pragma_user_version",
+    )
+    .fetch_one(&pool)
+    .await
+    {
+        Ok(v) => v,
+        Err(err) => {
+            panic!("unable to obtain db version: {}", err);
+        }
+    };
+    println!(
+        "database at version {}, current {}",
+        version, GHD_DB_VERSION
+    );
+
+    if version > GHD_DB_VERSION {
+        return Err(GHDError::DBVersionInTheFuture);
+    } else if version < GHD_DB_VERSION {
+        println!("migrate db to latest version...");
+        let mut v = version;
+        while v < GHD_DB_VERSION {
+            let to = v + 1;
+            println!("migrate db from version {} to {}", v, to);
+            match migrate(&pool, v, to).await {
+                Ok(()) => {}
+                Err(err) => {
+                    panic!(
+                        "Error migrating db from version {} to {}: {}",
+                        v, to, err
+                    );
+                }
+            };
+            v += 1;
+        }
+    }
+
+    Ok(())
+}
+
+async fn migrate(
+    pool: &sqlx::Pool<sqlx::Sqlite>,
+    from: u32,
+    to: u32,
+) -> Result<(), sqlx::Error> {
+    if from < to - 1 {
+        panic!(
+            "We can't migrate db versions separated by more than one version!"
+        );
+    } else if from > to {
+        panic!("We can't migrate db from the future!");
+    } else if from == to {
+        // nothing to do
+        return Ok(());
+    }
+
+    if from == 0 {
+        // migrate version 0 to version 1
+        assert_eq!(to, 1);
+
+        let mut tx = pool.begin().await.unwrap_or_else(|err| {
+            panic!("unable to start transaction: {}", err);
+        });
+
+        let query = "ALTER TABLE issues ADD COLUMN archived_at INTEGER";
+        match sqlx::query(&query).execute(&mut tx).await {
+            Ok(_) => {}
+            Err(err) => {
+                panic!("Unable to alter table: {}", err);
+            }
+        };
+        match sqlx::query("PRAGMA user_version=1").execute(&mut tx).await {
+            Ok(_) => {}
+            Err(err) => {
+                panic!("Unable to increase db version: {}", err);
+            }
+        };
+        match tx.commit().await {
+            Ok(_) => {}
+            Err(err) => {
+                return Err(err);
+            }
+        };
+    }
+
+    Ok(())
 }

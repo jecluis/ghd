@@ -22,4 +22,5 @@ pub enum GHDError {
     BadRequest,
     UnknownError,
     NotFoundError,
+    DBVersionInTheFuture,
 }
