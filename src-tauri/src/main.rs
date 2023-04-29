@@ -17,6 +17,7 @@
     windows_subsystem = "windows"
 )]
 
+use errors::GHDError;
 use tauri::Manager;
 
 mod bg;
@@ -47,7 +48,7 @@ async fn set_token(
     token: String,
     window: tauri::Window,
     mstate: tauri::State<'_, ManagedState>,
-) -> Result<bool, ()> {
+) -> Result<(), u16> {
     println!("set token to {}", token);
 
     let state = &mstate.state().await;
@@ -61,21 +62,34 @@ async fn set_token(
         })
         .await
     {
-        Ok(_) => Ok(true),
-        Err(_) => Ok(false),
-    }
+        Ok(_) => {}
+        Err(err) => {
+            println!("error setting token: {:?}", err);
+            return Err(err as u16);
+        }
+    };
+    Ok(())
 }
 
 #[tauri::command]
 async fn get_token(
+    window: tauri::Window,
     mstate: tauri::State<'_, ManagedState>,
-) -> Result<String, ()> {
+) -> Result<String, u16> {
     let state = &mstate.state().await;
     let db = &state.db;
     let gh = &state.gh;
     let token = match &gh.get_token(&db).await {
         Ok(val) => val.clone(),
-        Err(_) => String::default(),
+        Err(err) => {
+            match err {
+                GHDError::BadTokenError => {
+                    events::emit_token_invalid(&window);
+                }
+                _ => {}
+            };
+            return Err(*err as u16);
+        }
     };
 
     Ok(token)

@@ -47,6 +47,9 @@ export class DashboardComponent
   private availSubscription?: Subscription;
   private usersSubscription?: Subscription;
 
+  public isTokenNotSet: boolean = false;
+  public isTokenInvalid: boolean = false;
+
   public constructor(
     private modalSvc: NgbModal,
     private ghSvc: GithubService,
@@ -56,6 +59,10 @@ export class DashboardComponent
     this.availSubscription = this.ghSvc.getAvailable().subscribe({
       next: (res: boolean) => {
         this.isAvailable = res;
+        if (!this.isAvailable) {
+          this.isTokenNotSet = !this.ghSvc.hasTokenSet();
+          this.isTokenInvalid = this.ghSvc.isTokenInvalid();
+        }
       },
     });
     this.usersSubscription = this.ghSvc.getUsers().subscribe({

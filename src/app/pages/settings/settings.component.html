@@ -29,10 +29,15 @@ limitations under the License.
       <div class="col-8 ">
         <input class="form-control" id="github-token-input" type="text"
                placeholder="ghp_" [formControl]="apiTokenFormControl"
-               [class.is-invalid]="isTokenInvalid()"
+               [class.is-invalid]="isTokenInvalid() || errorInvalidToken"
                [class.is-valid]="tokenIsValidated && successSettingToken"
                (input)="changeToken()" />
-        <div class="invalid-feedback" *ngIf="errorSettingToken">
+        <div class="invalid-feedback"
+             *ngIf="errorSettingToken && errorInvalidToken">
+          Invalid or expired token
+        </div>
+        <div class="invalid-feedback"
+             *ngIf="errorSettingToken && !errorInvalidToken">
           Unable to set token
         </div>
         <div class="invalid-feedback"

@@ -58,6 +58,11 @@ impl BGTask {
                         events::emit_user_data_update(&window, &user.login);
                     }
                     Ok(false) => {}
+                    Err(crate::errors::GHDError::BadTokenError) => {
+                        println!("invalidate token");
+                        gh.invalidate_token(&db).await;
+                        continue;
+                    }
                     Err(err) => {
                         println!(
                             "error refreshing user '{}': {:?}",

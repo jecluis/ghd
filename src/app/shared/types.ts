@@ -12,6 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+export enum GHDError {
+  TokenNotFoundError,
+  BadTokenError,
+  UserNotSetError,
+  UserNotFoundError,
+  NeverRefreshedError,
+  BadRequest,
+  UnknownError,
+  NotFoundError,
+  DBVersionInTheFuture,
+}
+
 export type GithubUser = {
   id: number;
   login: string;

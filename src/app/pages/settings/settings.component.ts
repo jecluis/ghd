@@ -8,6 +8,7 @@ import {
 } from "@angular/forms";
 import { invoke } from "@tauri-apps/api";
 import { TauriService } from "src/app/shared/services/tauri.service";
+import { GHDError } from "src/app/shared/types";
 
 @Component({
   selector: "ghd-settings",
@@ -23,6 +24,7 @@ export class SettingsComponent implements OnInit {
   public errorSettingToken = false;
   public successSettingToken = false;
   public tokenIsValidated = false;
+  public errorInvalidToken = false;
 
   private apiToken: string = "";
 
@@ -39,22 +41,19 @@ export class SettingsComponent implements OnInit {
     const newToken = this.apiTokenFormControl.value;
     this.tauriSvc
       .setToken(newToken)
-      .then((res: boolean) => {
+      .then(() => {
         this.tokenIsValidated = true;
-        if (!res) {
-          console.error("Unable to set api token!");
-          this.errorSettingToken = true;
-          this.successSettingToken = false;
-          this.refreshToken();
-        } else {
-          this.successSettingToken = true;
-          this.errorSettingToken = false;
-        }
+        this.successSettingToken = true;
+        this.errorSettingToken = false;
       })
-      .catch((err) => {
+      .catch((err: number) => {
         console.error("Error setting token: ", err);
         this.errorSettingToken = true;
         this.successSettingToken = false;
+
+        if (err === GHDError.BadTokenError) {
+          this.errorInvalidToken = true;
+        }
       });
   }
 

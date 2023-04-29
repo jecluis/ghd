@@ -38,8 +38,9 @@ limitations under the License.
 
   <div class="mt-3 mx-3 w-100">
 
-    <div class="mt-3" *ngIf="!isAvailable">
-      <h4>Dashboard not available until a valid token is set.</h4>
+    <div class="mt-3 alert alert-danger" *ngIf="!isAvailable">
+      <h4 *ngIf="isTokenInvalid">Token is invalid or has expired.</h4>
+      <h4 *ngIf="isTokenNotSet">Token has not been set.</h4>
     </div>
 
     <div *ngFor="let user of trackedUsers">

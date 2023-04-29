@@ -18,6 +18,7 @@ pub const EV_ITERATION: &str = "iteration";
 pub const EV_USER_DATA_UPDATE: &str = "user_data_update";
 pub const EV_USER_UPDATE: &str = "user_update";
 pub const EV_TOKEN_SET: &str = "token_set";
+pub const EV_TOKEN_INVALID: &str = "token_invalid";
 
 pub fn emit<S>(w: &tauri::Window, ev: &str, payload: S)
 where
@@ -28,6 +29,10 @@ where
 
 pub fn emit_token_set(w: &tauri::Window) {
     emit(w, EV_TOKEN_SET, true);
+}
+
+pub fn emit_token_invalid(w: &tauri::Window) {
+    emit(w, EV_TOKEN_INVALID, true);
 }
 
 pub fn emit_user_update(w: &tauri::Window, user: &GithubUser) {

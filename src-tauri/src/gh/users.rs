@@ -59,6 +59,20 @@ pub async fn get_user_by_login(
     }
 }
 
+/// Checks whether a given user exists in the database.
+///
+/// # Arguments
+///
+/// * `db` - The GHD Database handle.
+/// * `login` - A String representing the user login.
+///
+pub async fn user_exists(db: &DB, login: &String) -> bool {
+    match get_user_by_login(&db, &login).await {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
+
 /// Add a user to the GHD database. This function requires a transaction.
 /// Presumes the user does not exist in the database.
 ///

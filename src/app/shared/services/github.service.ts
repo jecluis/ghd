@@ -14,7 +14,7 @@
 
 import { Injectable, NgZone } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
-import { GithubUser } from "../types";
+import { GHDError, GithubUser } from "../types";
 import {
   TauriEventListener,
   TauriListenerEvent,
@@ -22,12 +22,16 @@ import {
 } from "./tauri.service";
 
 export type UsersMap = { [id: string]: GithubUser };
+export type TokenStatus = {
+  invalid: boolean;
+  notSet: boolean;
+};
 
 @Injectable({
   providedIn: "root",
 })
 export class GithubService implements TauriEventListener {
-  private hasToken: boolean = false;
+  private tokenStatus: TokenStatus = { invalid: false, notSet: true };
   private mainUser?: string;
   private users: UsersMap = {};
 
@@ -49,7 +53,7 @@ export class GithubService implements TauriEventListener {
   public handleEvent(event: TauriListenerEvent): void {
     this.zone.run(() => {
       if (event.name === TauriService.events.TOKEN_SET) {
-        this.hasToken = true;
+        this.tokenStatus = { invalid: false, notSet: false };
         this.availableSubject.next(this.isAvailable());
       } else if (event.name === TauriService.events.USER_UPDATE) {
         let user = <GithubUser>event.payload;
@@ -58,17 +62,30 @@ export class GithubService implements TauriEventListener {
         }
         this.users[user.login] = user;
         this.usersSubject.next(this.users);
+      } else if (event.name == TauriService.events.TOKEN_INVALID) {
+        this.tokenStatus = { invalid: true, notSet: false };
+        this.availableSubject.next(this.isAvailable());
       }
     });
   }
 
   private init(): void {
-    this.tauriSvc.getToken().then((res: string) => {
-      if (res !== "") {
-        this.hasToken = true;
+    this.tauriSvc
+      .getToken()
+      .then((res: string) => {
+        if (res !== "") {
+          this.tokenStatus = { invalid: false, notSet: false };
+          this.availableSubject.next(this.isAvailable());
+        }
+      })
+      .catch((err: number) => {
+        if (err === GHDError.BadTokenError) {
+          this.tokenStatus = { invalid: true, notSet: false };
+        } else if (err === GHDError.TokenNotFoundError) {
+          this.tokenStatus = { invalid: false, notSet: true };
+        }
         this.availableSubject.next(this.isAvailable());
-      }
-    });
+      });
     this.tauriSvc
       .getMainUser()
       .then((res: GithubUser) => {
@@ -92,7 +109,15 @@ export class GithubService implements TauriEventListener {
   }
 
   public isAvailable(): boolean {
-    return this.hasToken;
+    return !this.tokenStatus.notSet && !this.tokenStatus.invalid;
+  }
+
+  public hasTokenSet(): boolean {
+    return !this.tokenStatus.notSet;
+  }
+
+  public isTokenInvalid(): boolean {
+    return this.tokenStatus.invalid;
   }
 
   public getMainUser(): string | undefined {

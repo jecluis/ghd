@@ -98,6 +98,9 @@ impl GithubGQLRequest {
             reqwest::StatusCode::BAD_REQUEST => {
                 return Err(GHDError::BadRequest);
             }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                return Err(GHDError::BadTokenError);
+            }
             err => {
                 println!("unknown error: {}", err);
                 return Err(GHDError::UnknownError);
@@ -159,7 +162,7 @@ impl GithubGQLRequest {
     pub async fn get_user_open_issues(
         self: &Self,
         login: &String,
-    ) -> search_issues::ResponseData {
+    ) -> Result<search_issues::ResponseData, GHDError> {
         let q = format!("involves:{} is:open", login);
         self.get_search_issues_data(&q).await
     }
@@ -179,7 +182,7 @@ impl GithubGQLRequest {
         self: &Self,
         login: &String,
         since: &String,
-    ) -> search_issues::ResponseData {
+    ) -> Result<search_issues::ResponseData, GHDError> {
         let q = format!("involves:{} updated:>{}", login, since);
         self.get_search_issues_data(&q).await
     }
@@ -195,19 +198,22 @@ impl GithubGQLRequest {
     async fn get_search_issues_data(
         self: &Self,
         query: &String,
-    ) -> search_issues::ResponseData {
+    ) -> Result<search_issues::ResponseData, GHDError> {
         let vars = search_issues::Variables { q: query.clone() };
         let response_data: search_issues::ResponseData = match self
             .execute::<SearchIssues, search_issues::ResponseData>(vars)
             .await
         {
             Ok(res) => res,
+            Err(GHDError::UnknownError) => {
+                panic!("error: unknown error");
+            }
             Err(err) => {
-                panic!("error: {:?}", err);
+                return Err(err);
             }
         };
 
-        response_data
+        Ok(response_data)
     }
 }
 
@@ -219,9 +225,13 @@ pub async fn get_user_open_issues(
     token: &String,
     login: &String,
 ) -> Result<UserUpdate, GHDError> {
-    let res = GithubGQLRequest::new(&token)
+    let res = match GithubGQLRequest::new(&token)
         .get_user_open_issues(&login)
-        .await;
+        .await
+    {
+        Ok(v) => v,
+        Err(err) => return Err(err),
+    };
 
     process_user_search_results(&res)
 }
@@ -241,9 +251,13 @@ pub async fn get_user_updates(
     since: &chrono::DateTime<chrono::Utc>,
 ) -> Result<UserUpdate, GHDError> {
     let since_str = since.to_rfc3339();
-    let res = GithubGQLRequest::new(&token)
+    let res = match GithubGQLRequest::new(&token)
         .get_user_update(&login, &since_str)
-        .await;
+        .await
+    {
+        Ok(v) => v,
+        Err(err) => return Err(err),
+    };
 
     process_user_search_results(&res)
 }

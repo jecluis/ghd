@@ -46,7 +46,7 @@ impl Github {
         let val: Result<sqlx::sqlite::SqliteRow, sqlx::Error> = sqlx::query(
             "
                 SELECT token FROM tokens
-                WHERE id = (SELECT MAX(id) FROM tokens);
+                WHERE id = (SELECT MAX(id) FROM tokens WHERE invalid = False);
             ",
         )
         .fetch_one(db.pool())
@@ -61,8 +61,29 @@ impl Github {
                     }
                 };
             }
-            Err(_) => return Err(GHDError::TokenNotFoundError),
-        }
+            Err(_) => {}
+        };
+
+        // nothing was found, was it because we don't have a token, or because
+        // the one we have is invalid?
+        match sqlx::query(
+            "
+            SELECT token FROM tokens
+            WHERE id = (SELECT MAX(id) FROM tokens);
+            ",
+        )
+        .fetch_one(db.pool())
+        .await
+        {
+            Ok(_) => {
+                // there is at least one token, so they must be invalid.
+                return Err(GHDError::BadTokenError);
+            }
+            Err(_) => {
+                // no tokens available
+                return Err(GHDError::TokenNotFoundError);
+            }
+        };
     }
 
     /// Set the API Token to be used by GHD. Expects a callback function as
@@ -93,6 +114,9 @@ impl Github {
                     reqwest::StatusCode::FORBIDDEN => {
                         Err(GHDError::BadTokenError)
                     }
+                    reqwest::StatusCode::UNAUTHORIZED => {
+                        Err(GHDError::BadTokenError)
+                    }
                     _ => Err(GHDError::UnknownError),
                 };
             }
@@ -106,10 +130,16 @@ impl Github {
             }
         };
 
-        users::add_user_to_db(&mut tx, &user).await;
+        let user_exists = users::user_exists(&db, &user.login).await;
+        if !user_exists {
+            users::add_user_to_db(&mut tx, &user).await;
+        }
 
         sqlx::query(
-            "INSERT OR REPLACE into tokens (token, user_id) VALUES (?, ?)",
+            "
+                INSERT OR REPLACE into tokens (token, user_id, invalid)
+                VALUES (?, ?, False)
+            ",
         )
         .bind(token)
         .bind(&user.id)
@@ -124,10 +154,38 @@ impl Github {
         });
         println!("  user and token have been set!");
 
-        self.populate_user(&db, &user.login).await.unwrap();
+        if !user_exists {
+            self.populate_user(&db, &user.login).await.unwrap();
+        }
 
         cb(&user);
         Ok(())
+    }
+
+    pub async fn invalidate_token(self: &Self, db: &DB) {
+        let query = "
+            UPDATE tokens SET invalid = True
+            WHERE id = (SELECT MAX(id) FROM tokens WHERE invalid = False)
+        ";
+
+        let mut tx = match db.pool().begin().await {
+            Ok(res) => res,
+            Err(err) => {
+                panic!(
+                    "Error starting transaction to invalidate token: {}",
+                    err
+                );
+            }
+        };
+        sqlx::query(query)
+            .execute(&mut tx)
+            .await
+            .unwrap_or_else(|err| {
+                panic!("Error updating token validity: {}", err);
+            });
+        tx.commit().await.unwrap_or_else(|err| {
+            panic!("Unable to commit token invalidation transaction: {}", err);
+        });
     }
 
     /// Obtain user by their login. First tries the database, and will fallback
@@ -345,6 +403,10 @@ impl Github {
         let res =
             match gql::get_user_updates(&token, &login, &last_update).await {
                 Ok(updates) => updates,
+                Err(GHDError::BadTokenError) => {
+                    println!("Token invalid or expired!");
+                    return Err(GHDError::BadTokenError);
+                }
                 Err(err) => {
                     panic!(
                     "Unexpected error obtaining user updates from GQL: {:?}",
