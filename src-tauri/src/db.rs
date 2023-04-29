@@ -18,7 +18,9 @@ use crate::errors::GHDError;
 
 /// Current DB Schema version
 ///
-const GHD_DB_VERSION: u32 = 1;
+// version 2: add 'invalid' token table column
+//
+const GHD_DB_VERSION: u32 = 2;
 
 pub struct DB {
     pub uri: String,
@@ -129,6 +131,7 @@ async fn create_db_schema(uri: &str) -> Result<SqliteQueryResult, sqlx::Error> {
         id          INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         token       TEXT NOT NULL,
         user_id     INTEGER,
+        invalid     BOOL NOT NULL,
         UNIQUE(token, user_id)
     );
     ";
@@ -216,6 +219,64 @@ async fn migrate(
             }
         };
         match sqlx::query("PRAGMA user_version=1").execute(&mut tx).await {
+            Ok(_) => {}
+            Err(err) => {
+                panic!("Unable to increase db version: {}", err);
+            }
+        };
+        match tx.commit().await {
+            Ok(_) => {}
+            Err(err) => {
+                return Err(err);
+            }
+        };
+    } else if from == 1 {
+        // migrate version 1 to version 2
+        assert_eq!(to, 2);
+
+        let mut tx = pool.begin().await.unwrap_or_else(|err| {
+            panic!("unable to start transaction: {}", err);
+        });
+
+        match sqlx::query("ALTER TABLE tokens ADD COLUMN invalid BOOL")
+            .execute(&mut tx)
+            .await
+        {
+            Ok(_) => {}
+            Err(err) => {
+                panic!("Unable to alter table 'tokens': {}", err);
+            }
+        };
+        match sqlx::query("UPDATE tokens SET invalid = True")
+            .execute(&mut tx)
+            .await
+        {
+            Ok(_) => {}
+            Err(err) => {
+                panic!(
+                    "Unable to set default token invalid values to True: {}",
+                    err
+                );
+            }
+        };
+        match sqlx::query(
+            "
+                UPDATE tokens SET invalid = False
+                WHERE id = (SELECT MAX(id) FROM tokens)
+            ",
+        )
+        .execute(&mut tx)
+        .await
+        {
+            Ok(_) => {}
+            Err(err) => {
+                panic!(
+                    "Unable to set latest token invalid value to False: {}",
+                    err
+                );
+            }
+        };
+        match sqlx::query("PRAGMA user_version=2").execute(&mut tx).await {
             Ok(_) => {}
             Err(err) => {
                 panic!("Unable to increase db version: {}", err);
