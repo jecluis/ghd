@@ -1059,7 +1059,7 @@ dependencies = [
 
 [[package]]
 name = "ghd"
-version = "0.4.0"
+version = "0.5.0-rc"
 dependencies = [
  "chrono",
  "directories",
