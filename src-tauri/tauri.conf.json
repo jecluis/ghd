@@ -14,6 +14,12 @@
       "all": false,
       "shell": {
         "open": true
+      },
+      "globalShortcut": {
+        "all": true        
+      },
+      "process": {
+        "exit": true
       }
     },
     "bundle": {

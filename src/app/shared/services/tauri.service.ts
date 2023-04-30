@@ -15,6 +15,8 @@
 import { Injectable } from "@angular/core";
 import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
+import { exit as tauriExit } from "@tauri-apps/api/process";
+import { register } from "@tauri-apps/api/globalShortcut";
 import { getVersion as tauriGetVersion } from "@tauri-apps/api/app";
 import { GithubUser, PullRequestEntry } from "../types";
 
@@ -67,6 +69,16 @@ export class TauriService {
 
       this.listeners.set(evname, new Map());
     });
+
+    register("Control+Q", () => {
+      console.debug("ctrl+q triggered");
+      this.closeApplication();
+    }).then(() => {});
+  }
+
+  public closeApplication() {
+    console.info("closing application");
+    tauriExit(0).then(() => {});
   }
 
   public register(evname: string, listener: TauriEventListener) {

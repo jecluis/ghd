@@ -16,4 +16,8 @@ export class MainLayoutComponent implements OnInit {
       this.version = v;
     });
   }
+
+  public closeApplication(): void {
+    this.tauriSvc.closeApplication();
+  }
 }
