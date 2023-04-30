@@ -483,4 +483,14 @@ impl Github {
     ) -> Result<(), GHDError> {
         prs::mark_viewed(&db, &prid).await
     }
+
+    /// Archive the provided issue with ID `issue_id`.
+    ///
+    pub async fn archive_issue(
+        self: &Self,
+        db: &DB,
+        issue_id: &i64,
+    ) -> Result<(), GHDError> {
+        prs::archive_issue(&db, &issue_id).await
+    }
 }

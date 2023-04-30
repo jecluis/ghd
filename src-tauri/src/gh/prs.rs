@@ -59,6 +59,8 @@ pub async fn get_prs_by_author(
             pull_requests.id = issues.id
         WHERE
             issues.author = ?
+            AND
+            issues.archived_at IS NULL
         ORDER BY issues.updated_at DESC
         ",
     )
@@ -97,6 +99,7 @@ pub async fn get_involved_prs(
                 user_issues.user_id = (
                     SELECT id FROM users WHERE login = ?
                 )
+                AND issues.archived_at IS NULL
         ) AS
             issues
         ON
@@ -277,6 +280,29 @@ pub async fn mark_viewed(db: &DB, prid: &i64) -> Result<(), GHDError> {
         }
         Err(err) => {
             panic!("Unexpected error marking pr '{}' viewed: {}", prid, err);
+        }
+    };
+
+    Ok(())
+}
+
+/// Mark a specified Issue as having been archived.
+///
+pub async fn archive_issue(db: &DB, issue_id: &i64) -> Result<(), GHDError> {
+    let now = chrono::Utc::now().timestamp();
+
+    match sqlx::query("UPDATE issues SET archived_at = ? WHERE id = ?")
+        .bind(&now)
+        .bind(&issue_id)
+        .execute(db.pool())
+        .await
+    {
+        Ok(_) => {}
+        Err(sqlx::Error::RowNotFound) => {
+            return Err(GHDError::NotFoundError);
+        }
+        Err(err) => {
+            panic!("Unexpected error archiving issue '{}': {}", issue_id, err);
         }
     };
 

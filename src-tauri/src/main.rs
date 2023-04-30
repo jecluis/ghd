@@ -199,6 +199,27 @@ async fn pr_get_list_by_involved(
     }
 }
 
+#[tauri::command]
+async fn archive_issue(
+    issue_id: i64,
+    mstate: tauri::State<'_, ManagedState>,
+) -> Result<(), ()> {
+    println!("Marking issue {} as archived", issue_id);
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+
+    match gh.archive_issue(&db, &issue_id).await {
+        Ok(_) => {}
+        Err(err) => {
+            println!("Error archiving issue '{}': {:?}", issue_id, err);
+            return Err(());
+        }
+    };
+
+    Ok(())
+}
+
 async fn setup_paths() -> paths::Paths {
     paths::Paths::default().init().await
 }
@@ -245,6 +266,7 @@ async fn main() {
             pr_mark_viewed,
             pr_get_list_by_author,
             pr_get_list_by_involved,
+            archive_issue,
         ])
         .setup(|app| {
             let handle = app.app_handle();

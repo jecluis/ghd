@@ -128,4 +128,8 @@ export class TauriService {
   public getInvolvedPullRequests(login: string): Promise<PullRequestEntry[]> {
     return invoke("pr_get_list_by_involved", { login: login });
   }
+
+  public archiveIssue(issueId: number): Promise<void> {
+    return invoke("archive_issue", { issueId: issueId });
+  }
 }

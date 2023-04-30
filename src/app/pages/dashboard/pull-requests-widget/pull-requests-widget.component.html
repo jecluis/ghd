@@ -34,12 +34,12 @@ limitations under the License.
           <td>
             <i class="mdi mdi-check-circle-outline text-primary" placement="top"
                ngbTooltip="Mark Viewed" (click)="markViewed(pr)"
-               *ngIf="!isMarkingViewed"></i>
+               *ngIf="!isMarkingSomething"></i>
             <i class="mdi mdi-check-circle-outline text-muted"
-               *ngIf="isMarkingViewed && markingViewed !== pr.id"></i>
+               *ngIf="isMarkingSomething && markingViewed !== pr.id"></i>
             <div class="spinner-border spinner-border-sm text-success"
                  role="status"
-                 *ngIf="isMarkingViewed && markingViewed === pr.id">
+                 *ngIf="isMarkingSomething && markingViewed === pr.id">
               <span class="visually-hidden">Marking Viewed...</span>
             </div>
           </td>
@@ -68,7 +68,14 @@ limitations under the License.
       <tbody>
         <tr *ngFor="let pr of ownPRs.viewed">
           <td>
-            <i class="mdi mdi-check-bold text-success"></i>
+            <i class="mdi mdi-archive-arrow-down-outline fs-4"
+               style="color: #244461" (click)="markArchived(pr)"
+               *ngIf="!isMarkingSomething"></i>
+            <i class="mdi mdi-archive-arrow-down-outline fs-4 text-muted"
+               *ngIf="isMarkingSomething && markingArchived !== pr.id"></i>
+            <i class="spinner-border spinner-border-sm text-success"
+               role="status"
+               *ngIf="isMarkingSomething && markingArchived === pr.id"></i>
           </td>
           <td>
             <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
@@ -111,12 +118,12 @@ limitations under the License.
           <td>
             <i class="mdi mdi-check-circle-outline text-primary" placement="top"
                ngbTooltip="Mark Viewed" (click)="markViewed(pr)"
-               *ngIf="!isMarkingViewed"></i>
+               *ngIf="!isMarkingSomething"></i>
             <i class="mdi mdi-check-circle-outline text-muted"
-               *ngIf="isMarkingViewed && markingViewed !== pr.id"></i>
+               *ngIf="isMarkingSomething && markingViewed !== pr.id"></i>
             <div class="spinner-border spinner-border-sm text-success"
                  role="status"
-                 *ngIf="isMarkingViewed && markingViewed === pr.id">
+                 *ngIf="isMarkingSomething && markingViewed === pr.id">
               <span class="visually-hidden">Marking Viewed...</span>
             </div>
           </td>
@@ -146,7 +153,14 @@ limitations under the License.
       <tbody>
         <tr *ngFor="let pr of involved.viewed">
           <td>
-            <i class="mdi mdi-check-bold text-success"></i>
+            <i class="mdi mdi-archive-arrow-down-outline fs-4"
+               style="color: #244461" (click)="markArchived(pr)"
+               *ngIf="!isMarkingSomething"></i>
+            <i class="mdi mdi-archive-arrow-down-outline fs-4 text-muted"
+               *ngIf="isMarkingSomething && markingArchived !== pr.id"></i>
+            <i class="spinner-border spinner-border-sm text-success"
+               role="status"
+               *ngIf="isMarkingSomething && markingArchived === pr.id"></i>
           </td>
           <td>
             <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
