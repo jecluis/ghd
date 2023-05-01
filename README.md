@@ -23,6 +23,10 @@ as we would like. We are also figuring out what we want as we go, depending on
 our workflow. Should you, the reader, have opinions, please do not hesitate in
 sharing them with us by filing an [Issue][4].
 
+## Pretty Pictures
+
+<img src="docs/images/ss-20230501.png" alt="ghd v0.5-rc" width="50%" height="50%"/>
+
 ## LICENSE
 
     Licensed under the Apache License, Version 2.0 (the "License");
