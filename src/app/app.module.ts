@@ -7,7 +7,11 @@ import { MainLayoutComponent } from "./layout/main-layout/main-layout.component"
 import { SettingsComponent } from "./pages/settings/settings.component";
 import { DashboardComponent } from "./pages/dashboard/dashboard.component";
 import { ReactiveFormsModule } from "@angular/forms";
-import { NgbModalModule, NgbTooltipModule } from "@ng-bootstrap/ng-bootstrap";
+import {
+  NgbCollapseModule,
+  NgbModalModule,
+  NgbTooltipModule,
+} from "@ng-bootstrap/ng-bootstrap";
 import { TrackUserModalComponent } from "./pages/dashboard/track-user-modal/track-user-modal.component";
 import { DashboardViewComponent } from "./pages/dashboard/dashboard-view/dashboard-view.component";
 import { PullRequestsWidgetComponent } from "./pages/dashboard/pull-requests-widget/pull-requests-widget.component";
@@ -32,6 +36,7 @@ import { PRStateComponent } from "./shared/components/pr-state/pr-state.componen
     ReactiveFormsModule,
     NgbModalModule,
     NgbTooltipModule,
+    NgbCollapseModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

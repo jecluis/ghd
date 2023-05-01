@@ -65,6 +65,8 @@ export class PullRequestsWidgetComponent
   public isMarkingSomething = false;
   public markingViewed?: number;
   public markingArchived?: number;
+  public isOwnCollapsed = true;
+  public isInvolvedCollapsed = true;
 
   public constructor(private zone: NgZone, private tauriSvc: TauriService) {}
 

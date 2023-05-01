@@ -16,171 +16,181 @@ limitations under the License.
 
 <div class="card">
   <div class="card-header">
-    <h4 class="card-title">Own</h4>
+    <h4 class="card-title" (click)="isOwnCollapsed = !isOwnCollapsed">
+      <i class="mdi mdi-chevron-right" *ngIf="isOwnCollapsed"></i>
+      <i class="mdi mdi-chevron-down" *ngIf="!isOwnCollapsed"></i>
+      Own
+    </h4>
   </div>
 
-  <div class="card-body">
+  <div #collapseown="ngbCollapse" [(ngbCollapse)]="isOwnCollapsed">
+    <div class="card-body">
 
-    <h5>Recent</h5>
-    <div *ngIf="ownPRs.toView.length === 0">
-      <p class="text-center fw-bold">
-        All done!
-      </p>
-      <hr />
-    </div>
-    <table class="table" *ngIf="ownPRs.toView.length > 0">
-      <tbody>
-        <tr *ngFor="let pr of ownPRs.toView">
-          <td>
-            <i class="mdi mdi-check-circle-outline text-primary" placement="top"
-               ngbTooltip="Mark Viewed" (click)="markViewed(pr)"
-               *ngIf="!isMarkingSomething"></i>
-            <i class="mdi mdi-check-circle-outline text-muted"
-               *ngIf="isMarkingSomething && markingViewed !== pr.id"></i>
-            <div class="spinner-border spinner-border-sm text-success"
+      <h5>Recent</h5>
+      <div *ngIf="ownPRs.toView.length === 0">
+        <p class="text-center fw-bold">
+          All done!
+        </p>
+        <hr />
+      </div>
+      <table class="table" *ngIf="ownPRs.toView.length > 0">
+        <tbody>
+          <tr *ngFor="let pr of ownPRs.toView">
+            <td>
+              <i class="mdi mdi-check-circle-outline text-primary"
+                 placement="top" ngbTooltip="Mark Viewed"
+                 (click)="markViewed(pr)" *ngIf="!isMarkingSomething"></i>
+              <i class="mdi mdi-check-circle-outline text-muted"
+                 *ngIf="isMarkingSomething && markingViewed !== pr.id"></i>
+              <div class="spinner-border spinner-border-sm text-success"
+                   role="status"
+                   *ngIf="isMarkingSomething && markingViewed === pr.id">
+                <span class="visually-hidden">Marking Viewed...</span>
+              </div>
+            </td>
+            <td>
+              <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
+              </ghd-repo-name>
+            </td>
+            <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
+            <td>#{{pr.number}}</td>
+            <td>
+              <a [href]="pr.url" target="_blank">
+                {{pr.title}}
+              </a>
+            </td>
+            <td>{{pr.lastUpdateObs|async}}</td>
+            <td>
+              <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+
+      <h5 class="mt-3 mb-3">Viewed</h5>
+      <table class="table">
+        <tbody>
+          <tr *ngFor="let pr of ownPRs.viewed">
+            <td>
+              <i class="mdi mdi-archive-arrow-down-outline fs-4"
+                 style="color: #244461" (click)="markArchived(pr)"
+                 *ngIf="!isMarkingSomething"></i>
+              <i class="mdi mdi-archive-arrow-down-outline fs-4 text-muted"
+                 *ngIf="isMarkingSomething && markingArchived !== pr.id"></i>
+              <i class="spinner-border spinner-border-sm text-success"
                  role="status"
-                 *ngIf="isMarkingSomething && markingViewed === pr.id">
-              <span class="visually-hidden">Marking Viewed...</span>
-            </div>
-          </td>
-          <td>
-            <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
-            </ghd-repo-name>
-          </td>
-          <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
-          <td>#{{pr.number}}</td>
-          <td>
-            <a [href]="pr.url" target="_blank">
-              {{pr.title}}
-            </a>
-          </td>
-          <td>{{pr.lastUpdateObs|async}}</td>
-          <td>
-            <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+                 *ngIf="isMarkingSomething && markingArchived === pr.id"></i>
+            </td>
+            <td>
+              <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
+              </ghd-repo-name>
+            </td>
+            <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
+            <td>#{{pr.number}}</td>
+            <td>
+              <a [href]="pr.url" target="_blank">
+                {{pr.title}}
+              </a>
+            </td>
+            <td>
+              <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-
-    <h5 class="mt-3 mb-3">Viewed</h5>
-    <table class="table">
-      <tbody>
-        <tr *ngFor="let pr of ownPRs.viewed">
-          <td>
-            <i class="mdi mdi-archive-arrow-down-outline fs-4"
-               style="color: #244461" (click)="markArchived(pr)"
-               *ngIf="!isMarkingSomething"></i>
-            <i class="mdi mdi-archive-arrow-down-outline fs-4 text-muted"
-               *ngIf="isMarkingSomething && markingArchived !== pr.id"></i>
-            <i class="spinner-border spinner-border-sm text-success"
-               role="status"
-               *ngIf="isMarkingSomething && markingArchived === pr.id"></i>
-          </td>
-          <td>
-            <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
-            </ghd-repo-name>
-          </td>
-          <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
-          <td>#{{pr.number}}</td>
-          <td>
-            <a [href]="pr.url" target="_blank">
-              {{pr.title}}
-            </a>
-          </td>
-          <td>
-            <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
+    </div>
   </div>
-
 </div>
 
 <div class="card mt-3">
   <div class="card-header">
-    <h4 class="card-title">Involved</h4>
+    <h4 class="card-title" (click)="isInvolvedCollapsed = !isInvolvedCollapsed">
+      <i class="mdi mdi-chevron-right" *ngIf="isInvolvedCollapsed"></i>
+      <i class="mdi mdi-chevron-down" *ngIf="!isInvolvedCollapsed"></i>
+      Involved
+    </h4>
   </div>
 
-  <div class="card-body">
+  <div #collapseown="ngbCollapse" [(ngbCollapse)]="isInvolvedCollapsed">
+    <div class="card-body">
 
-    <div *ngIf="involved.toView.length === 0">
-      <p class="text-center fw-bold">
-        All done!
-      </p>
-      <hr />
-    </div>
-    <table class="table" *ngIf="involved.toView.length > 0">
-      <tbody>
-        <tr *ngFor="let pr of involved.toView">
-          <td>
-            <i class="mdi mdi-check-circle-outline text-primary" placement="top"
-               ngbTooltip="Mark Viewed" (click)="markViewed(pr)"
-               *ngIf="!isMarkingSomething"></i>
-            <i class="mdi mdi-check-circle-outline text-muted"
-               *ngIf="isMarkingSomething && markingViewed !== pr.id"></i>
-            <div class="spinner-border spinner-border-sm text-success"
+      <div *ngIf="involved.toView.length === 0">
+        <p class="text-center fw-bold">
+          All done!
+        </p>
+        <hr />
+      </div>
+      <table class="table" *ngIf="involved.toView.length > 0">
+        <tbody>
+          <tr *ngFor="let pr of involved.toView">
+            <td>
+              <i class="mdi mdi-check-circle-outline text-primary"
+                 placement="top" ngbTooltip="Mark Viewed"
+                 (click)="markViewed(pr)" *ngIf="!isMarkingSomething"></i>
+              <i class="mdi mdi-check-circle-outline text-muted"
+                 *ngIf="isMarkingSomething && markingViewed !== pr.id"></i>
+              <div class="spinner-border spinner-border-sm text-success"
+                   role="status"
+                   *ngIf="isMarkingSomething && markingViewed === pr.id">
+                <span class="visually-hidden">Marking Viewed...</span>
+              </div>
+            </td>
+            <td>
+              <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
+              </ghd-repo-name>
+            </td>
+            <td>{{pr.author}}</td>
+            <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
+            <td>#{{pr.number}}</td>
+            <td>
+              <a [href]="pr.url" target="_blank">
+                {{pr.title}}
+              </a>
+            </td>
+            <td>{{pr.lastUpdateObs|async}}</td>
+            <td>
+              <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+
+      <h5 class="mt-3 mb-3">Viewed</h5>
+      <table class="table">
+        <tbody>
+          <tr *ngFor="let pr of involved.viewed">
+            <td>
+              <i class="mdi mdi-archive-arrow-down-outline fs-4"
+                 style="color: #244461" (click)="markArchived(pr)"
+                 *ngIf="!isMarkingSomething"></i>
+              <i class="mdi mdi-archive-arrow-down-outline fs-4 text-muted"
+                 *ngIf="isMarkingSomething && markingArchived !== pr.id"></i>
+              <i class="spinner-border spinner-border-sm text-success"
                  role="status"
-                 *ngIf="isMarkingSomething && markingViewed === pr.id">
-              <span class="visually-hidden">Marking Viewed...</span>
-            </div>
-          </td>
-          <td>
-            <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
-            </ghd-repo-name>
-          </td>
-          <td>{{pr.author}}</td>
-          <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
-          <td>#{{pr.number}}</td>
-          <td>
-            <a [href]="pr.url" target="_blank">
-              {{pr.title}}
-            </a>
-          </td>
-          <td>{{pr.lastUpdateObs|async}}</td>
-          <td>
-            <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+                 *ngIf="isMarkingSomething && markingArchived === pr.id"></i>
+            </td>
+            <td>
+              <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
+              </ghd-repo-name>
+            </td>
+            <td>{{pr.author}}</td>
+            <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
+            <td>#{{pr.number}}</td>
+            <td>
+              <a [href]="pr.url" target="_blank">
+                {{pr.title}}
+              </a>
+            </td>
+            <td>
+              <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-
-    <h5 class="mt-3 mb-3">Viewed</h5>
-    <table class="table">
-      <tbody>
-        <tr *ngFor="let pr of involved.viewed">
-          <td>
-            <i class="mdi mdi-archive-arrow-down-outline fs-4"
-               style="color: #244461" (click)="markArchived(pr)"
-               *ngIf="!isMarkingSomething"></i>
-            <i class="mdi mdi-archive-arrow-down-outline fs-4 text-muted"
-               *ngIf="isMarkingSomething && markingArchived !== pr.id"></i>
-            <i class="spinner-border spinner-border-sm text-success"
-               role="status"
-               *ngIf="isMarkingSomething && markingArchived === pr.id"></i>
-          </td>
-          <td>
-            <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
-            </ghd-repo-name>
-          </td>
-          <td>{{pr.author}}</td>
-          <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
-          <td>#{{pr.number}}</td>
-          <td>
-            <a [href]="pr.url" target="_blank">
-              {{pr.title}}
-            </a>
-          </td>
-          <td>
-            <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
+    </div>
   </div>
-
 </div>
