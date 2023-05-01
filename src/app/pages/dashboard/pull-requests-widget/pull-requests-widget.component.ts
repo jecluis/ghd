@@ -40,6 +40,7 @@ type PRTableEntry = {
 type TrackedPRs = {
   toView: PRTableEntry[];
   viewed: PRTableEntry[];
+  len: number;
 };
 
 @Component({
@@ -56,10 +57,12 @@ export class PullRequestsWidgetComponent
   public ownPRs: TrackedPRs = {
     toView: [],
     viewed: [],
+    len: 0,
   };
   public involved: TrackedPRs = {
     toView: [],
     viewed: [],
+    len: 0,
   };
 
   public isMarkingSomething = false;
@@ -170,6 +173,10 @@ export class PullRequestsWidgetComponent
         toView.push(entry);
       }
     });
-    return { toView: toView, viewed: viewed };
+    return {
+      toView: toView,
+      viewed: viewed,
+      len: toView.length + viewed.length,
+    };
   }
 }

@@ -16,11 +16,33 @@ limitations under the License.
 
 <div class="card">
   <div class="card-header">
-    <h4 class="card-title" (click)="isOwnCollapsed = !isOwnCollapsed">
-      <i class="mdi mdi-chevron-right" *ngIf="isOwnCollapsed"></i>
-      <i class="mdi mdi-chevron-down" *ngIf="!isOwnCollapsed"></i>
-      Own
-    </h4>
+    <div class="d-flex flex-row">
+      <h4 class="card-title flex-column"
+          (click)="isOwnCollapsed = !isOwnCollapsed">
+        <i class="mdi mdi-chevron-right" *ngIf="isOwnCollapsed"></i>
+        <i class="mdi mdi-chevron-down" *ngIf="!isOwnCollapsed"></i>
+        Own
+      </h4>
+      <div class="flex-column ps-2">
+        <div class="d-flex flex-row">
+          <div>
+            <span class="badge bg-secondary">{{ownPRs.len}}</span>
+          </div>
+          <div class="ps-2">
+            <span class="badge bg-primary">
+              <i class="mdi mdi-flare pe-1"></i>
+              {{ownPRs.toView.length}}
+            </span>
+          </div>
+          <div class="ps-2">
+            <span class="badge bg-success"><i
+                 class="mdi mdi-eye-check pe-1"></i>
+              {{ownPRs.viewed.length}}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div #collapseown="ngbCollapse" [(ngbCollapse)]="isOwnCollapsed">
@@ -106,11 +128,33 @@ limitations under the License.
 
 <div class="card mt-3">
   <div class="card-header">
-    <h4 class="card-title" (click)="isInvolvedCollapsed = !isInvolvedCollapsed">
-      <i class="mdi mdi-chevron-right" *ngIf="isInvolvedCollapsed"></i>
-      <i class="mdi mdi-chevron-down" *ngIf="!isInvolvedCollapsed"></i>
-      Involved
-    </h4>
+    <div class="d-flex flex-row">
+      <h4 class="card-title flex-column"
+          (click)="isInvolvedCollapsed = !isInvolvedCollapsed">
+        <i class="mdi mdi-chevron-right" *ngIf="isInvolvedCollapsed"></i>
+        <i class="mdi mdi-chevron-down" *ngIf="!isInvolvedCollapsed"></i>
+        Involved
+      </h4>
+      <div class="flex-column ps-2">
+        <div class="d-flex flex-row">
+          <div>
+            <span class="badge bg-secondary">{{involved.len}}</span>
+          </div>
+          <div class="ps-2">
+            <span class="badge bg-primary">
+              <i class="mdi mdi-flare pe-1"></i>
+              {{involved.toView.length}}
+            </span>
+          </div>
+          <div class="ps-2">
+            <span class="badge bg-success"><i
+                 class="mdi mdi-eye-check pe-1"></i>
+              {{involved.viewed.length}}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div #collapseown="ngbCollapse" [(ngbCollapse)]="isInvolvedCollapsed">
