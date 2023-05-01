@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use log::info;
+
 use crate::{common, db::DB, errors::GHDError};
 
 use super::types::{Issue, PullRequest, PullRequestTableEntry};
@@ -183,7 +185,7 @@ pub async fn consume_issues(
     issues: &Vec<Issue>,
     prs: &Vec<PullRequest>,
 ) -> Result<(), GHDError> {
-    println!("consuming {} issues, {} prs", issues.len(), prs.len());
+    info!("consuming {} issues, {} prs", issues.len(), prs.len());
 
     let mut issue_ids: Vec<i64> = vec![];
 

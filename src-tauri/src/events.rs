@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use log::debug;
+
 use crate::gh::types::GithubUser;
 
 pub const EV_ITERATION: &str = "iteration";
@@ -36,11 +38,11 @@ pub fn emit_token_invalid(w: &tauri::Window) {
 }
 
 pub fn emit_user_update(w: &tauri::Window, user: &GithubUser) {
-    println!("emit user update for {}", user.login);
+    debug!("emit user update for {}", user.login);
     emit(w, EV_USER_UPDATE, user);
 }
 
 pub fn emit_user_data_update(w: &tauri::Window, login: &String) {
-    println!("emite user data update for '{}'", login);
+    debug!("emite user data update for '{}'", login);
     emit(w, EV_USER_DATA_UPDATE, login);
 }

@@ -18,6 +18,7 @@ use crate::{
     gh::{self, Github},
     ManagedState,
 };
+use log::{debug, error, info, warn};
 use tauri::Manager;
 
 mod types;
@@ -40,7 +41,6 @@ impl BGTask {
             let _cfg = &state.config;
             let gh = &state.gh;
 
-            println!("background task iteration #{}", n);
             window.emit("iteration", n).unwrap();
             n += 1;
 
@@ -51,20 +51,20 @@ impl BGTask {
 
             let to_refresh = gh::refresh::get_to_refresh_users(&db).await;
             for user in &to_refresh {
-                println!("should refresh user '{}'", user.login);
+                debug!("should refresh user '{}'", user.login);
                 match gh.refresh_user(&db, &user.login).await {
                     Ok(true) => {
-                        println!("refreshed user '{}'", user.login);
+                        info!("refreshed user '{}'", user.login);
                         events::emit_user_data_update(&window, &user.login);
                     }
                     Ok(false) => {}
                     Err(crate::errors::GHDError::BadTokenError) => {
-                        println!("invalidate token");
+                        warn!("invalidate token");
                         gh.invalidate_token(&db).await;
                         continue;
                     }
                     Err(err) => {
-                        println!(
+                        error!(
                             "error refreshing user '{}': {:?}",
                             user.login, err,
                         );

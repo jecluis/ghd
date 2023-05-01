@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use log::{debug, info};
 use sqlx::{migrate::MigrateDatabase, sqlite::SqliteQueryResult, SqlitePool};
 
 use crate::errors::GHDError;
@@ -52,11 +53,11 @@ impl DB {
         {
             sqlx::Sqlite::create_database(&self.uri).await.unwrap();
             match create_db_schema(&self.uri).await {
-                Ok(_) => println!("Database created successfully."),
+                Ok(_) => info!("Database created successfully."),
                 Err(err) => panic!("{}", err),
             };
         } else {
-            println!("database exists, maybe migrate?");
+            debug!("database exists, maybe migrate?");
             match maybe_migrate(&self.uri).await {
                 Ok(_) => {}
                 Err(err) => panic!("error migrating db: {:?}", err),
@@ -158,7 +159,7 @@ async fn maybe_migrate(uri: &str) -> Result<(), GHDError> {
             panic!("unable to obtain db version: {}", err);
         }
     };
-    println!(
+    debug!(
         "database at version {}, current {}",
         version, GHD_DB_VERSION
     );
@@ -166,11 +167,11 @@ async fn maybe_migrate(uri: &str) -> Result<(), GHDError> {
     if version > GHD_DB_VERSION {
         return Err(GHDError::DBVersionInTheFuture);
     } else if version < GHD_DB_VERSION {
-        println!("migrate db to latest version...");
+        info!("migrate db to latest version...");
         let mut v = version;
         while v < GHD_DB_VERSION {
             let to = v + 1;
-            println!("migrate db from version {} to {}", v, to);
+            info!("migrate db from version {} to {}", v, to);
             match migrate(&pool, v, to).await {
                 Ok(()) => {}
                 Err(err) => {

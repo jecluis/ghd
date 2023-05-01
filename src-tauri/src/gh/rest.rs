@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use log::debug;
+
 /// Abstracts REST requests. May be used as one GithubRequest per REST
 /// operation, or may be reused.
 ///
@@ -81,7 +83,7 @@ impl GithubRequest {
         let txt = req.text().await.unwrap();
 
         if std::env::var("GHD_REST_DEBUG").is_ok() {
-            println!("REST(send result): {}", txt);
+            debug!("REST(send result): {}", txt);
         }
 
         let res: T = serde_json::from_str(&txt).unwrap();

@@ -18,6 +18,7 @@
 )]
 
 use errors::GHDError;
+use log::{debug, error, info};
 use tauri::Manager;
 
 mod bg;
@@ -49,7 +50,7 @@ async fn set_token(
     window: tauri::Window,
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<(), u16> {
-    println!("set token to {}", token);
+    debug!("set token to {}", token);
 
     let state = &mstate.state().await;
 
@@ -64,7 +65,7 @@ async fn set_token(
     {
         Ok(_) => {}
         Err(err) => {
-            println!("error setting token: {:?}", err);
+            error!("error setting token: {:?}", err);
             return Err(err as u16);
         }
     };
@@ -125,7 +126,7 @@ async fn add_tracked_user(
     window: tauri::Window,
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<gh::types::GithubUser, ()> {
-    println!("track new user: {}", username);
+    debug!("track new user: {}", username);
     let state = &mstate.state().await;
     let db = &state.db;
     let gh = &state.gh;
@@ -145,7 +146,7 @@ async fn check_user_exists(
     username: String,
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<gh::types::GithubUser, ()> {
-    println!("check user exist: {}", username);
+    debug!("check user exist: {}", username);
     let state = &mstate.state().await;
     let db = &state.db;
     let gh = &state.gh;
@@ -204,7 +205,7 @@ async fn archive_issue(
     issue_id: i64,
     mstate: tauri::State<'_, ManagedState>,
 ) -> Result<(), ()> {
-    println!("Marking issue {} as archived", issue_id);
+    debug!("Marking issue {} as archived", issue_id);
     let state = &mstate.state().await;
     let db = &state.db;
     let gh = &state.gh;
@@ -212,7 +213,7 @@ async fn archive_issue(
     match gh.archive_issue(&db, &issue_id).await {
         Ok(_) => {}
         Err(err) => {
-            println!("Error archiving issue '{}': {:?}", issue_id, err);
+            error!("Error archiving issue '{}': {:?}", issue_id, err);
             return Err(());
         }
     };
@@ -237,13 +238,14 @@ async fn setup_config() -> config::Config {
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
     let paths = setup_paths().await;
     let db_handle = setup_db(&paths.db_path).await;
     let cfg = setup_config().await;
 
-    println!("  user data dir: {}", paths.data_dir.display());
-    println!("user config dir: {}", paths.config_dir.display());
-    println!("  database path: {}", paths.db_path.display());
+    info!("  user data dir: {}", paths.data_dir.display());
+    info!("user config dir: {}", paths.config_dir.display());
+    info!("  database path: {}", paths.db_path.display());
 
     tauri::async_runtime::set(tokio::runtime::Handle::current());
 

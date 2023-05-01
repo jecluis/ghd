@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use log::{debug, warn};
+
 use crate::{db::DB, errors::GHDError};
 
 use super::{rest, types::GithubUser};
@@ -147,11 +149,11 @@ pub async fn get_main_user(db: &DB) -> Result<GithubUser, GHDError> {
     .await
     {
         Ok(res) => {
-            println!("has user: {}", res.login);
+            debug!("has user: {}", res.login);
             res
         }
         Err(_) => {
-            println!("no user found!");
+            warn!("no user found!");
             return Err(GHDError::UserNotSetError);
         }
     };

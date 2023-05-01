@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use log::{debug, warn};
 use sqlx::Row;
 
 use crate::{db::DB, errors::GHDError};
@@ -105,8 +106,8 @@ impl Github {
     where
         F: FnOnce(&GithubUser),
     {
-        println!("setting token {}", token);
-        println!("  obtaining user for token");
+        debug!("setting token {}", token);
+        debug!("  obtaining user for token");
         let user: GithubUser = match users::whoami(token).await {
             Ok(res) => res,
             Err(err) => {
@@ -121,7 +122,7 @@ impl Github {
                 };
             }
         };
-        println!("  user: {}, {}", user.login, user.name);
+        debug!("  user: {}, {}", user.login, user.name);
 
         let mut tx = match db.pool().begin().await {
             Ok(res) => res,
@@ -152,7 +153,7 @@ impl Github {
         tx.commit().await.unwrap_or_else(|err| {
             panic!("Unable to commit transaction to set token: {}", err);
         });
-        println!("  user and token have been set!");
+        debug!("  user and token have been set!");
 
         if !user_exists {
             self.populate_user(&db, &user.login).await.unwrap();
@@ -251,7 +252,7 @@ impl Github {
     {
         match users::get_user_by_login(&db, &login).await {
             Ok(res) => {
-                println!("user {} already exists!", login);
+                debug!("user {} already exists!", login);
                 return Ok(res);
             }
             Err(_) => {}
@@ -404,7 +405,7 @@ impl Github {
             match gql::get_user_updates(&token, &login, &last_update).await {
                 Ok(updates) => updates,
                 Err(GHDError::BadTokenError) => {
-                    println!("Token invalid or expired!");
+                    warn!("Token invalid or expired!");
                     return Err(GHDError::BadTokenError);
                 }
                 Err(err) => {
@@ -424,7 +425,7 @@ impl Github {
 
         let mut ret = true;
         if res.prs.is_empty() && res.issues.is_empty() {
-            println!("nothing to update for user '{}'.", user.login);
+            debug!("nothing to update for user '{}'.", user.login);
             ret = false;
         }
 
