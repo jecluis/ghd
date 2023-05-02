@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { Observable } from "rxjs";
+
 export enum GHDError {
   TokenNotFoundError,
   BadTokenError,
@@ -49,4 +51,20 @@ export type PullRequestEntry = {
   is_draft: boolean;
   review_decision: string;
   merged_at?: number;
+};
+
+/// Used in the Dashboard's Pull Request Table
+///
+export type PRTableEntry = {
+  id: number;
+  number: number;
+  title: string;
+  author: string;
+  repoOwner: string;
+  url: string;
+  repoName: string;
+  state: string;
+  lastUpdate: number;
+  lastUpdateObs: Observable<string>;
+  reviewDecision: string;
 };

@@ -18,24 +18,18 @@ import {
   TauriListenerEvent,
   TauriService,
 } from "src/app/shared/services/tauri.service";
-import { GithubUser, PullRequestEntry } from "src/app/shared/types";
+import {
+  GithubUser,
+  PRTableEntry,
+  PullRequestEntry,
+} from "src/app/shared/types";
 import formatDistance from "date-fns/formatDistance";
 import toDate from "date-fns/toDate";
-import { interval, map, Observable } from "rxjs";
-
-type PRTableEntry = {
-  id: number;
-  number: number;
-  title: string;
-  author: string;
-  repoOwner: string;
-  url: string;
-  repoName: string;
-  state: string;
-  lastUpdate: number;
-  lastUpdateObs: Observable<string>;
-  reviewDecision: string;
-};
+import { Subscription, interval, map } from "rxjs";
+import {
+  UserPullRequests,
+  UserPullRequestsService,
+} from "src/app/shared/services/user-pull-requests.service";
 
 type TrackedPRs = {
   toView: PRTableEntry[];
@@ -71,15 +65,32 @@ export class PullRequestsWidgetComponent
   public isOwnCollapsed = true;
   public isInvolvedCollapsed = true;
 
-  public constructor(private zone: NgZone, private tauriSvc: TauriService) {}
+  private userUpdateSubscription?: Subscription;
+
+  public constructor(
+    private zone: NgZone,
+    private tauriSvc: TauriService,
+    private prsSvc: UserPullRequestsService,
+  ) {}
 
   public ngOnInit(): void {
     this.tauriSvc.register(TauriService.events.USER_DATA_UPDATE, this);
+
+    this.userUpdateSubscription = this.prsSvc
+      .getPullRequests(this.user.login)
+      .subscribe({
+        next: (prs: UserPullRequests) => {
+          this.updatePullRequests(prs);
+        },
+      });
     this.updateUser().then(() => {});
   }
 
   public ngOnDestroy(): void {
     this.tauriSvc.unregister(TauriService.events.USER_DATA_UPDATE, this);
+    if (!!this.userUpdateSubscription) {
+      this.userUpdateSubscription.unsubscribe();
+    }
   }
 
   public getListenerID(): string {
@@ -134,18 +145,13 @@ export class PullRequestsWidgetComponent
     return formatDistance(updatedAt, now);
   }
 
-  private async updateUser(): Promise<void> {
-    try {
-      let prs = await this.tauriSvc.getPullRequestsByAuthor(this.user.login);
-      this.ownPRs = this.processPRs(prs);
+  private updatePullRequests(prs: UserPullRequests): void {
+    this.ownPRs = this.processPRs(prs.own);
+    this.involved = this.processPRs(prs.involved);
+  }
 
-      let involved = await this.tauriSvc.getInvolvedPullRequests(
-        this.user.login,
-      );
-      this.involved = this.processPRs(involved);
-    } catch (err) {
-      console.error("unable to update user: ", err);
-    }
+  private async updateUser(): Promise<void> {
+    await this.prsSvc.updateUser(this.user.login);
   }
 
   private processPRs(prs: PullRequestEntry[]): TrackedPRs {

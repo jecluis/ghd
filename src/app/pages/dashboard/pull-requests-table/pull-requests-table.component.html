@@ -1,0 +1,57 @@
+<!--
+Copyright 2023 Joao Eduardo Luis <joao@abysmo.io>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<table class="table" *ngIf="entries.length > 0">
+  <tbody>
+    <tr *ngFor="let pr of entries">
+      <td *ngIf="recents">
+        <i class="mdi mdi-check-circle-outline text-primary" placement="top"
+           ngbTooltip="Mark Viewed" (click)="markViewed(pr)"
+           *ngIf="!isMarkingSomething"></i>
+        <i class="mdi mdi-check-circle-outline text-muted"
+           *ngIf="isMarkingSomething && markingViewed !== pr.id"></i>
+        <div class="spinner-border spinner-border-sm text-success" role="status"
+             *ngIf="isMarkingSomething && markingViewed === pr.id">
+          <span class="visually-hidden">Marking Viewed...</span>
+        </div>
+      </td>
+      <td *ngIf="!recents">
+        <i class="mdi mdi-archive-arrow-down-outline fs-4"
+           style="color: #244461" (click)="markArchived(pr)"
+           *ngIf="!isMarkingSomething"></i>
+        <i class="mdi mdi-archive-arrow-down-outline fs-4 text-muted"
+           *ngIf="isMarkingSomething && markingArchived !== pr.id"></i>
+        <i class="spinner-border spinner-border-sm text-success" role="status"
+           *ngIf="isMarkingSomething && markingArchived === pr.id"></i>
+      </td>
+      <td>
+        <ghd-repo-name [owner]="pr.repoOwner" [name]="pr.repoName">
+        </ghd-repo-name>
+      </td>
+      <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
+      <td>#{{pr.number}}</td>
+      <td>
+        <a [href]="pr.url" target="_blank">
+          {{pr.title}}
+        </a>
+      </td>
+      <td>{{pr.lastUpdateObs|async}}</td>
+      <td>
+        <ghd-pr-state [decision]="pr.reviewDecision"></ghd-pr-state>
+      </td>
+    </tr>
+  </tbody>
+</table>
