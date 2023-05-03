@@ -22,6 +22,7 @@ import {
   GithubUser,
   PRTableEntry,
   PullRequestEntry,
+  TrackedPRs,
 } from "src/app/shared/types";
 import formatDistance from "date-fns/formatDistance";
 import toDate from "date-fns/toDate";
@@ -30,12 +31,6 @@ import {
   UserPullRequests,
   UserPullRequestsService,
 } from "src/app/shared/services/user-pull-requests.service";
-
-type TrackedPRs = {
-  toView: PRTableEntry[];
-  viewed: PRTableEntry[];
-  len: number;
-};
 
 @Component({
   selector: "ghd-pull-requests-widget",
@@ -58,12 +53,6 @@ export class PullRequestsWidgetComponent
     viewed: [],
     len: 0,
   };
-
-  public isMarkingSomething = false;
-  public markingViewed?: number;
-  public markingArchived?: number;
-  public isOwnCollapsed = true;
-  public isInvolvedCollapsed = true;
 
   private userUpdateSubscription?: Subscription;
 
@@ -104,38 +93,6 @@ export class PullRequestsWidgetComponent
         this.updateUser().then(() => {});
       });
     }
-  }
-
-  public markViewed(pr: PRTableEntry): void {
-    this.isMarkingSomething = true;
-    this.markingViewed = pr.id;
-    this.tauriSvc
-      .markPullRequestViewed(pr.id)
-      .then(() => {
-        this.updateUser().then(() => {
-          this.isMarkingSomething = false;
-          this.markingViewed = undefined;
-        });
-      })
-      .catch(() => {
-        console.error(`unable to mark PR id ${pr.id} as viewed`);
-      });
-  }
-
-  public markArchived(pr: PRTableEntry): void {
-    this.isMarkingSomething = true;
-    this.markingArchived = pr.id;
-    this.tauriSvc
-      .archiveIssue(pr.id)
-      .then(() => {
-        this.updateUser().then(() => {
-          this.isMarkingSomething = false;
-          this.markingArchived = undefined;
-        });
-      })
-      .catch((err) => {
-        console.error(`unable to mark PR id ${pr.id} as archived: ${err}`);
-      });
   }
 
   public getDateDiff(value: number): string {

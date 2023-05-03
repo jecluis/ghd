@@ -14,105 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<div class="card">
-  <div class="card-header">
-    <div class="d-flex flex-row">
-      <h4 class="card-title flex-column"
-          (click)="isOwnCollapsed = !isOwnCollapsed">
-        <i class="mdi mdi-chevron-right" *ngIf="isOwnCollapsed"></i>
-        <i class="mdi mdi-chevron-down" *ngIf="!isOwnCollapsed"></i>
-        Own
-      </h4>
-      <div class="flex-column ps-2">
-        <div class="d-flex flex-row">
-          <div>
-            <span class="badge bg-secondary">{{ownPRs.len}}</span>
-          </div>
-          <div class="ps-2">
-            <span class="badge bg-primary">
-              <i class="mdi mdi-flare pe-1"></i>
-              {{ownPRs.toView.length}}
-            </span>
-          </div>
-          <div class="ps-2">
-            <span class="badge bg-success"><i
-                 class="mdi mdi-eye-check pe-1"></i>
-              {{ownPRs.viewed.length}}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div #collapseown="ngbCollapse" [(ngbCollapse)]="isOwnCollapsed">
-    <div class="card-body">
-
-      <h5>Recent</h5>
-      <div *ngIf="ownPRs.toView.length === 0">
-        <p class="text-center fw-bold">
-          All done!
-        </p>
-        <hr />
-      </div>
-      <ghd-pull-requests-table [entries]="ownPRs.toView" [login]="user.login"
-                               [recents]="true"></ghd-pull-requests-table>
-
-      <h5 class="mt-3 mb-3">Viewed</h5>
-      <ghd-pull-requests-table [entries]="ownPRs.viewed" [login]="user.login"
-                               [recents]="false"></ghd-pull-requests-table>
-
-    </div>
-  </div>
+<div>
+  <ghd-pull-requests-card [prs]="ownPRs" [login]="user.login">
+    Own
+  </ghd-pull-requests-card>
 </div>
 
-<div class="card mt-3">
-  <div class="card-header">
-    <div class="d-flex flex-row">
-      <h4 class="card-title flex-column"
-          (click)="isInvolvedCollapsed = !isInvolvedCollapsed">
-        <i class="mdi mdi-chevron-right" *ngIf="isInvolvedCollapsed"></i>
-        <i class="mdi mdi-chevron-down" *ngIf="!isInvolvedCollapsed"></i>
-        Involved
-      </h4>
-      <div class="flex-column ps-2">
-        <div class="d-flex flex-row">
-          <div>
-            <span class="badge bg-secondary">{{involved.len}}</span>
-          </div>
-          <div class="ps-2">
-            <span class="badge bg-primary">
-              <i class="mdi mdi-flare pe-1"></i>
-              {{involved.toView.length}}
-            </span>
-          </div>
-          <div class="ps-2">
-            <span class="badge bg-success"><i
-                 class="mdi mdi-eye-check pe-1"></i>
-              {{involved.viewed.length}}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div #collapseown="ngbCollapse" [(ngbCollapse)]="isInvolvedCollapsed">
-    <div class="card-body">
-
-      <div *ngIf="involved.toView.length === 0">
-        <p class="text-center fw-bold">
-          All done!
-        </p>
-        <hr />
-      </div>
-      <ghd-pull-requests-table [entries]="involved.toView" [login]="user.login"
-                               [recents]="true"></ghd-pull-requests-table>
-
-      <h5 class="mt-3 mb-3">Viewed</h5>
-      <ghd-pull-requests-table [entries]="involved.viewed" [login]="user.login"
-                               [recents]="false"></ghd-pull-requests-table>
-
-    </div>
-  </div>
+<div class="mt-3">
+  <ghd-pull-requests-card [prs]="involved" [login]="user.login">
+    Involved
+  </ghd-pull-requests-card>
 </div>

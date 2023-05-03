@@ -68,3 +68,11 @@ export type PRTableEntry = {
   lastUpdateObs: Observable<string>;
   reviewDecision: string;
 };
+
+/// Used in the Dashboard's Pull Requests Table
+///
+export type TrackedPRs = {
+  toView: PRTableEntry[];
+  viewed: PRTableEntry[];
+  len: number;
+};

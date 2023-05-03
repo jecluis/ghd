@@ -18,6 +18,7 @@ import { PullRequestsWidgetComponent } from "./pages/dashboard/pull-requests-wid
 import { RepoNameComponent } from "./shared/components/repo-name/repo-name.component";
 import { PRStateComponent } from "./shared/components/pr-state/pr-state.component";
 import { PullRequestsTableComponent } from "./pages/dashboard/pull-requests-table/pull-requests-table.component";
+import { PullRequestsCardComponent } from './pages/dashboard/pull-requests-card/pull-requests-card.component';
 
 @NgModule({
   declarations: [
@@ -31,6 +32,7 @@ import { PullRequestsTableComponent } from "./pages/dashboard/pull-requests-tabl
     RepoNameComponent,
     PRStateComponent,
     PullRequestsTableComponent,
+    PullRequestsCardComponent,
   ],
   imports: [
     BrowserModule,
