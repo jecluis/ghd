@@ -30,17 +30,20 @@ limitations under the License.
       <div class="flex-column ps-2">
         <div class="d-flex flex-row">
           <div>
-            <span class="badge bg-secondary">{{prs.len}}</span>
+            <span class="badge bg-secondary" ngbTooltip="all"
+                  placement="bottom">{{prs.len}}</span>
           </div>
           <div class="ps-2">
-            <span class="badge bg-primary">
+            <span class="badge bg-primary" ngbTooltip="recent"
+                  placement="bottom">
               <i class="mdi mdi-flare pe-1"></i>
               {{prs.toView.length}}
             </span>
           </div>
           <div class="ps-2">
-            <span class="badge bg-success"><i
-                 class="mdi mdi-eye-check pe-1"></i>
+            <span class="badge bg-success" ngbTooltip="viewed"
+                  placement="bottom">
+              <i class="mdi mdi-eye-check pe-1"></i>
               {{prs.viewed.length}}
             </span>
           </div>
