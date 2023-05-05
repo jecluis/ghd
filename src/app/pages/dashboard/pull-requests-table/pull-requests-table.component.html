@@ -19,7 +19,7 @@ limitations under the License.
     <tr *ngFor="let pr of entries">
       <td *ngIf="recents">
         <i class="mdi mdi-check-circle-outline text-primary" placement="top"
-           ngbTooltip="Mark Viewed" (click)="markViewed(pr)"
+           ngbTooltip="Mark Viewed" container="body" (click)="markViewed(pr)"
            *ngIf="!isMarkingSomething"></i>
         <i class="mdi mdi-check-circle-outline text-muted"
            *ngIf="isMarkingSomething && markingViewed !== pr.id"></i>
