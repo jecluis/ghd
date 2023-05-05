@@ -52,7 +52,33 @@ limitations under the License.
   <div #collapseown="ngbCollapse" [(ngbCollapse)]="isCollapsed">
     <div class="card-body">
 
-      <h5>Recent</h5>
+      <div class="d-flex">
+        <h5 class="w-100">Recent</h5>
+        <div class="me-auto flex-shrink-1">
+          <div ngbDropdown class="d-inline-block" id="recentMenu">
+            <button class="btn btn-outline-primary btn-sm" ngbDropdownToggle
+                    id="recentMenu"
+                    [disabled]="markingViewed || prs.toView.length === 0">
+              <span class="spinner-grow spinner-grow-sm text-primary"
+                    role="status" *ngIf="markingViewed"></span>
+              <span *ngIf="!markingViewed">actions</span>
+              <span *ngIf="markingViewed" class="ps-2">working...</span>
+            </button>
+
+            <div ngbDropdownMenu aria-labelledby="recentMenu">
+              <button ngbDropdownItem (click)="markViewed(false)"
+                      [disabled]="!recentHasClosed">
+                Mark Closed as Viewed
+              </button>
+              <button ngbDropdownItem (click)="markViewed(true)"
+                      [disabled]="prs.toView.length === 0">
+                Mark All as Viewed
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
       <div *ngIf="prs.toView.length === 0">
         <p class="text-center fw-bold">
           All done!

@@ -9,6 +9,7 @@ import { DashboardComponent } from "./pages/dashboard/dashboard.component";
 import { ReactiveFormsModule } from "@angular/forms";
 import {
   NgbCollapseModule,
+  NgbDropdownModule,
   NgbModalModule,
   NgbTooltipModule,
 } from "@ng-bootstrap/ng-bootstrap";
@@ -18,7 +19,7 @@ import { PullRequestsWidgetComponent } from "./pages/dashboard/pull-requests-wid
 import { RepoNameComponent } from "./shared/components/repo-name/repo-name.component";
 import { PRStateComponent } from "./shared/components/pr-state/pr-state.component";
 import { PullRequestsTableComponent } from "./pages/dashboard/pull-requests-table/pull-requests-table.component";
-import { PullRequestsCardComponent } from './pages/dashboard/pull-requests-card/pull-requests-card.component';
+import { PullRequestsCardComponent } from "./pages/dashboard/pull-requests-card/pull-requests-card.component";
 
 @NgModule({
   declarations: [
@@ -41,6 +42,7 @@ import { PullRequestsCardComponent } from './pages/dashboard/pull-requests-card/
     NgbModalModule,
     NgbTooltipModule,
     NgbCollapseModule,
+    NgbDropdownModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

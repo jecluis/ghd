@@ -485,6 +485,21 @@ impl Github {
         prs::mark_viewed(&db, &prid).await
     }
 
+    /// Marks multiple Pull Requests as having been viewed.
+    ///
+    /// # Arguments
+    ///
+    /// * `db` - A GHD Database handle.
+    /// * `prs` - A Vector of Pull Request database IDs.
+    ///
+    pub async fn mark_pull_request_viewed_many(
+        self: &Self,
+        db: &DB,
+        prs: &Vec<i64>,
+    ) -> Result<(), GHDError> {
+        prs::mark_viewed_many(&db, &prs).await
+    }
+
     /// Archive the provided issue with ID `issue_id`.
     ///
     pub async fn archive_issue(

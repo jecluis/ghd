@@ -133,6 +133,10 @@ export class TauriService {
     return invoke("pr_mark_viewed", { prid: prid });
   }
 
+  public markManyPullRequestsViewed(prlst: number[]): Promise<void> {
+    return invoke("pr_mark_viewed_many", { prs: prlst });
+  }
+
   public getPullRequestsByAuthor(login: string): Promise<PullRequestEntry[]> {
     return invoke("pr_get_list_by_author", { login: login });
   }

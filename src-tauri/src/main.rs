@@ -171,6 +171,20 @@ async fn pr_mark_viewed(
 }
 
 #[tauri::command]
+async fn pr_mark_viewed_many(
+    prs: Vec<i64>,
+    mstate: tauri::State<'_, ManagedState>,
+) -> Result<(), ()> {
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+    match gh.mark_pull_request_viewed_many(&db, &prs).await {
+        Ok(_) => Ok(()),
+        Err(_) => Err(()),
+    }
+}
+
+#[tauri::command]
 async fn pr_get_list_by_author(
     login: String,
     mstate: tauri::State<'_, ManagedState>,
@@ -266,6 +280,7 @@ async fn main() {
             add_tracked_user,
             check_user_exists,
             pr_mark_viewed,
+            pr_mark_viewed_many,
             pr_get_list_by_author,
             pr_get_list_by_involved,
             archive_issue,

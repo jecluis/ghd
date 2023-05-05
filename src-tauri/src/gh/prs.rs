@@ -260,20 +260,26 @@ pub async fn consume_issues(
     Ok(())
 }
 
-/// Marks a specified Pull Request as having been viewed.
+/// Marks a specific Pull Request as having been viewed.
+///
+/// This is a helper function that performs a single update within a
+/// transaction.
 ///
 /// # Arguments
 ///
-/// * `db` - A GHD Database handle.
+/// * `tx` - The transaction to perform the update as part of.
 /// * `prid` - The Pull Request's database ID.
 ///
-pub async fn mark_viewed(db: &DB, prid: &i64) -> Result<(), GHDError> {
+async fn _mark_viewed(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    prid: &i64,
+) -> Result<(), GHDError> {
     let now = chrono::Utc::now().timestamp();
 
     match sqlx::query("UPDATE issues SET last_viewed = ? WHERE id = ?")
         .bind(&now)
         .bind(&prid)
-        .execute(db.pool())
+        .execute(&mut *tx)
         .await
     {
         Ok(_) => {}
@@ -284,6 +290,65 @@ pub async fn mark_viewed(db: &DB, prid: &i64) -> Result<(), GHDError> {
             panic!("Unexpected error marking pr '{}' viewed: {}", prid, err);
         }
     };
+    Ok(())
+}
+
+/// Marks a specified Pull Request as having been viewed.
+///
+/// # Arguments
+///
+/// * `db` - A GHD Database handle.
+/// * `prid` - The Pull Request's database ID.
+///
+pub async fn mark_viewed(db: &DB, prid: &i64) -> Result<(), GHDError> {
+    let mut tx = match db.pool().begin().await {
+        Ok(res) => res,
+        Err(err) => {
+            panic!("Error starting transaction to mark PR viewed: {}", err);
+        }
+    };
+
+    match _mark_viewed(&mut tx, prid).await {
+        Ok(_) => {}
+        Err(err) => return Err(err),
+    };
+
+    tx.commit().await.unwrap_or_else(|err| {
+        panic!("Unable to commit transaction to mark PR viewed: {}", err);
+    });
+    Ok(())
+}
+
+/// Mark multiple Pull Requests as having been viewed.
+///
+/// # Arguments:
+///
+/// * `db` - A GHD Database handle.
+/// * `prs` - A Vector containing one or more Pull Request database IDs.
+///
+pub async fn mark_viewed_many(db: &DB, prs: &Vec<i64>) -> Result<(), GHDError> {
+    let mut tx = db.pool().begin().await.unwrap_or_else(|err| {
+        panic!(
+            "Error starting transaction to mark multiple PRs as viewed: {}",
+            err
+        );
+    });
+
+    for prid in prs {
+        match _mark_viewed(&mut tx, prid).await {
+            Ok(_) => {}
+            Err(err) => {
+                tx.rollback().await.unwrap_or_else(|err| {
+                    panic!("Unable to rollback broken transaction: {}", err);
+                });
+                return Err(err);
+            }
+        };
+    }
+
+    tx.commit().await.unwrap_or_else(|err| {
+        panic!("Unable to commit transaction to mark PRs viewed: {}", err);
+    });
 
     Ok(())
 }
