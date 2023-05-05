@@ -148,4 +148,8 @@ export class TauriService {
   public archiveIssue(issueId: number): Promise<void> {
     return invoke("archive_issue", { issueId: issueId });
   }
+
+  public archiveIssueMany(issuelst: number[]): Promise<void> {
+    return invoke("archive_issue_many", { issues: issuelst });
+  }
 }

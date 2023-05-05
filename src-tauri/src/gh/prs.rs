@@ -355,13 +355,21 @@ pub async fn mark_viewed_many(db: &DB, prs: &Vec<i64>) -> Result<(), GHDError> {
 
 /// Mark a specified Issue as having been archived.
 ///
-pub async fn archive_issue(db: &DB, issue_id: &i64) -> Result<(), GHDError> {
+/// # Arguments
+///
+/// * `tx` - The transaction to perform the update as part of.
+/// * `issue_id` - The Issue database ID to be archived.
+///
+async fn _archive_issue(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    issue_id: &i64,
+) -> Result<(), GHDError> {
     let now = chrono::Utc::now().timestamp();
 
     match sqlx::query("UPDATE issues SET archived_at = ? WHERE id = ?")
         .bind(&now)
         .bind(&issue_id)
-        .execute(db.pool())
+        .execute(&mut *tx)
         .await
     {
         Ok(_) => {}
@@ -372,6 +380,72 @@ pub async fn archive_issue(db: &DB, issue_id: &i64) -> Result<(), GHDError> {
             panic!("Unexpected error archiving issue '{}': {}", issue_id, err);
         }
     };
+
+    Ok(())
+}
+
+/// Mark a specified Issue as having been archived.
+///
+/// # Arguments
+///
+/// * `db` - A GHD Database handle.
+/// * `issue_id` - The Issue database ID to be archived.
+///
+pub async fn archive_issue(db: &DB, issue_id: &i64) -> Result<(), GHDError> {
+    let mut tx = match db.pool().begin().await {
+        Ok(res) => res,
+        Err(err) => {
+            panic!("Error starting transaction to archive issue: {}", err);
+        }
+    };
+
+    match _archive_issue(&mut tx, issue_id).await {
+        Ok(_) => {}
+        Err(err) => return Err(err),
+    };
+
+    tx.commit().await.unwrap_or_else(|err| {
+        panic!("Unable to commit transaction to archive issue: {}", err);
+    });
+    Ok(())
+}
+
+/// Mark a Vector of Issues as having been archived.
+///
+/// # Arguments
+///
+/// * `db` - A GHD Database handle.
+/// * `issues` - A Vector of Issue database IDs.
+///
+pub async fn archive_issue_many(
+    db: &DB,
+    issues: &Vec<i64>,
+) -> Result<(), GHDError> {
+    let mut tx = db.pool().begin().await.unwrap_or_else(|err| {
+        panic!(
+            "Error starting transaction to archive multiple issues: {}",
+            err
+        );
+    });
+
+    for issueid in issues {
+        match _archive_issue(&mut tx, issueid).await {
+            Ok(_) => {}
+            Err(err) => {
+                tx.rollback().await.unwrap_or_else(|err| {
+                    panic!("Unable to rollback broken transaction: {}", err);
+                });
+                return Err(err);
+            }
+        };
+    }
+
+    tx.commit().await.unwrap_or_else(|err| {
+        panic!(
+            "Unable to commit transaction to archive multiple issues: {}",
+            err
+        );
+    });
 
     Ok(())
 }

@@ -235,6 +235,26 @@ async fn archive_issue(
     Ok(())
 }
 
+#[tauri::command]
+async fn archive_issue_many(
+    issues: Vec<i64>,
+    mstate: tauri::State<'_, ManagedState>,
+) -> Result<(), ()> {
+    debug!("Marking {} issues as archived", issues.len());
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+
+    match gh.archive_issue_many(&db, &issues).await {
+        Ok(_) => {}
+        Err(err) => {
+            error!("Error archiving multiple issues: {:?}", err);
+            return Err(());
+        }
+    };
+    Ok(())
+}
+
 async fn setup_paths() -> paths::Paths {
     paths::Paths::default().init().await
 }
@@ -284,6 +304,7 @@ async fn main() {
             pr_get_list_by_author,
             pr_get_list_by_involved,
             archive_issue,
+            archive_issue_many,
         ])
         .setup(|app| {
             let handle = app.app_handle();

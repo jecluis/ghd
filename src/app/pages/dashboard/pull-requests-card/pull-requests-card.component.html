@@ -88,7 +88,39 @@ limitations under the License.
       <ghd-pull-requests-table [entries]="prs.toView" [login]="login!"
                                [recents]="true"></ghd-pull-requests-table>
 
-      <h5 class="mt-3 mb-3">Viewed</h5>
+      <div class="d-flex">
+        <h5 class="w-100">Viewed</h5>
+        <div class="me-auto flex-shrink-1">
+          <div ngbDropdown class="d-inline-block" id="viewedMenu">
+            <button class="btn btn-outline-primary btn-sm" ngbDropdownToggle
+                    id="viewedMenu"
+                    [disabled]="markingArchived || prs.viewed.length === 0">
+              <span class="spinner-grow spinner-grow-sm text-primary"
+                    role="status" *ngIf="markingArchived"></span>
+              <span *ngIf="!markingArchived">actions</span>
+              <span *ngIf="markingArchived" class="ps-2">working...</span>
+            </button>
+
+            <div ngbDropdownMenu aria-labelledby="viewedMenu">
+              <button ngbDropdownItem (click)="markArchived(false)"
+                      [disabled]="!viewedHasClosed">
+                Archive Closed
+              </button>
+              <button ngbDropdownItem (click)="markArchived(true)"
+                      [disabled]="prs.viewed.length === 0">
+                Archive All
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div *ngIf="prs.viewed.length === 0">
+        <p class="text-center fw-bold">
+          All done!
+        </p>
+        <hr />
+      </div>
       <ghd-pull-requests-table [entries]="prs.viewed" [login]="login!"
                                [recents]="false"></ghd-pull-requests-table>
 

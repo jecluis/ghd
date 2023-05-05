@@ -34,7 +34,10 @@ export class PullRequestsCardComponent implements OnInit, OnChanges {
   public hasLogin: boolean = false;
 
   public markingViewed: boolean = false;
+  public markingArchived: boolean = false;
+
   public recentHasClosed: boolean = false;
+  public viewedHasClosed: boolean = false;
 
   public constructor(
     private tauriSvc: TauriService,
@@ -61,6 +64,11 @@ export class PullRequestsCardComponent implements OnInit, OnChanges {
         this.recentHasClosed = true;
       }
     });
+    this.prs.viewed.forEach((entry: PRTableEntry) => {
+      if (entry.state !== "open") {
+        this.viewedHasClosed = true;
+      }
+    });
   }
 
   /**
@@ -77,8 +85,6 @@ export class PullRequestsCardComponent implements OnInit, OnChanges {
     }
 
     this.markingViewed = true;
-
-    console.debug(`mark prs as viewed, all: ${all}`);
 
     let prlst: number[] = [];
     this.prs.toView.forEach((entry: PRTableEntry) => {
@@ -101,6 +107,45 @@ export class PullRequestsCardComponent implements OnInit, OnChanges {
         });
     } else {
       this.markingViewed = false;
+    }
+  }
+
+  /**
+   * Marks viewed PRs as archived, either all of them, or just those that have
+   * been closed.
+   *
+   * @param all Whether we should mark all PRs as archived, or just those that
+   * have been closed.
+   */
+  public markArchived(all: boolean = false): void {
+    if (!this.hasLogin) {
+      console.assert(false, "Should not reach this!");
+      return;
+    }
+
+    this.markingArchived = true;
+
+    let prlst: number[] = [];
+    this.prs.viewed.forEach((entry: PRTableEntry) => {
+      if (all || entry.state !== "open") {
+        prlst.push(entry.id);
+      }
+    });
+
+    if (prlst.length > 0) {
+      this.tauriSvc
+        .archiveIssueMany(prlst)
+        .then(() => {
+          this.prsSvc.updateUser(this.login!).then(() => {});
+        })
+        .catch(() => {
+          console.error("Unable to archive PR list: ", prlst);
+        })
+        .finally(() => {
+          this.markingArchived = false;
+        });
+    } else {
+      this.markingArchived = false;
     }
   }
 }
