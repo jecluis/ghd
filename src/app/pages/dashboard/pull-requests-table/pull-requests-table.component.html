@@ -31,6 +31,7 @@ limitations under the License.
       <td *ngIf="!recents">
         <i class="mdi mdi-archive-arrow-down-outline fs-4"
            style="color: #244461" (click)="markArchived(pr)"
+           ngbTooltip="Archive" container="body" placement="top"
            *ngIf="!isMarkingSomething"></i>
         <i class="mdi mdi-archive-arrow-down-outline fs-4 text-muted"
            *ngIf="isMarkingSomething && markingArchived !== pr.id"></i>
