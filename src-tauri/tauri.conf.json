@@ -7,7 +7,7 @@
   },
   "package": {
     "productName": "ghd",
-    "version": "0.5.0-rc"
+    "version": "0.5.0"
   },
   "tauri": {
     "allowlist": {
