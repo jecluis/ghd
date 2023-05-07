@@ -16,7 +16,9 @@ use log::info;
 
 use crate::{common, db::DB, errors::GHDError};
 
-use super::types::{Issue, PullRequest, PullRequestTableEntry};
+use super::types::{
+    Issue, IssueTableEntry, PullRequest, PullRequestTableEntry,
+};
 
 /// Obtain all Pull Requests from the database.
 ///
@@ -448,4 +450,34 @@ pub async fn archive_issue_many(
     });
 
     Ok(())
+}
+
+/// Obtain a specific issue by ID.
+///
+/// # Arguments
+///
+/// * `db` - A GHD Database handle.
+/// * `id` - An Issue database ID.
+///
+pub async fn get_issue_by_id(
+    db: &DB,
+    id: &i64,
+) -> Result<IssueTableEntry, GHDError> {
+    match sqlx::query_as::<_, IssueTableEntry>(
+        "
+        SELECT * from issues WHERE id = ?
+        ",
+    )
+    .bind(&id)
+    .fetch_one(db.pool())
+    .await
+    {
+        Ok(res) => Ok(res),
+        Err(sqlx::Error::RowNotFound) => {
+            return Err(GHDError::PullRequestNotFoundError);
+        }
+        Err(_) => {
+            return Err(GHDError::UnknownError);
+        }
+    }
 }

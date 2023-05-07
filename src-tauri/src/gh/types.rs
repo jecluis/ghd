@@ -16,7 +16,7 @@
 
 /// Describes a user, as it is kept in the database.
 ///
-#[derive(sqlx::FromRow, serde::Serialize)]
+#[derive(sqlx::FromRow, serde::Serialize, Clone)]
 pub struct GithubUser {
     pub id: i64,
     pub login: String,
@@ -103,4 +103,50 @@ pub struct UserUpdate {
     pub when: chrono::DateTime<chrono::Utc>,
     pub issues: Vec<Issue>,
     pub prs: Vec<PullRequest>,
+}
+
+/// Represents a Pull Request's detailed information.
+///
+#[derive(serde::Serialize)]
+pub struct PullRequestInfo {
+    pub number: i64,
+    pub title: String,
+    pub body_html: String,
+    pub author: GithubUser,
+    pub repo_owner: String,
+    pub repo_name: String,
+    pub url: String,
+    pub state: String,
+    pub is_draft: bool,
+    pub milestone: Option<Milestone>,
+    pub labels: Vec<Label>,
+    pub total_comments: i64,
+    pub participants: Vec<GithubUser>,
+    pub reviews: Vec<UserReview>,
+}
+
+/// Represents a milestone.
+///
+#[derive(serde::Serialize)]
+pub struct Milestone {
+    pub title: String,
+    pub state: String,
+    pub due_on: Option<chrono::DateTime<chrono::Utc>>,
+    pub due_on_ts: Option<i64>,
+}
+
+/// Represents a label.
+///
+#[derive(serde::Serialize)]
+pub struct Label {
+    pub color: String,
+    pub name: String,
+}
+
+/// Represents a User review
+///
+#[derive(serde::Serialize)]
+pub struct UserReview {
+    pub author: GithubUser,
+    pub state: String,
 }

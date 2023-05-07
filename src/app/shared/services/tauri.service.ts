@@ -18,7 +18,7 @@ import { listen } from "@tauri-apps/api/event";
 import { exit as tauriExit } from "@tauri-apps/api/process";
 import { register } from "@tauri-apps/api/globalShortcut";
 import { getVersion as tauriGetVersion } from "@tauri-apps/api/app";
-import { GithubUser, PullRequestEntry } from "../types";
+import { GithubUser, PullRequestEntry, PullRequestInfo } from "../types";
 
 export type TauriListenerEvent = {
   name: string;
@@ -143,6 +143,10 @@ export class TauriService {
 
   public getInvolvedPullRequests(login: string): Promise<PullRequestEntry[]> {
     return invoke("pr_get_list_by_involved", { login: login });
+  }
+
+  public getPullRequestInfo(prid: number): Promise<PullRequestInfo> {
+    return invoke("pr_get_info", { prid: prid });
   }
 
   public archiveIssue(issueId: number): Promise<void> {

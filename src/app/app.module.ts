@@ -11,6 +11,8 @@ import {
   NgbCollapseModule,
   NgbDropdownModule,
   NgbModalModule,
+  NgbOffcanvasModule,
+  NgbProgressbarModule,
   NgbTooltipModule,
 } from "@ng-bootstrap/ng-bootstrap";
 import { TrackUserModalComponent } from "./pages/dashboard/track-user-modal/track-user-modal.component";
@@ -20,6 +22,7 @@ import { RepoNameComponent } from "./shared/components/repo-name/repo-name.compo
 import { PRStateComponent } from "./shared/components/pr-state/pr-state.component";
 import { PullRequestsTableComponent } from "./pages/dashboard/pull-requests-table/pull-requests-table.component";
 import { PullRequestsCardComponent } from "./pages/dashboard/pull-requests-card/pull-requests-card.component";
+import { PullRequestDetailsComponent } from "./pages/dashboard/pull-request-details/pull-request-details.component";
 
 @NgModule({
   declarations: [
@@ -34,6 +37,7 @@ import { PullRequestsCardComponent } from "./pages/dashboard/pull-requests-card/
     PRStateComponent,
     PullRequestsTableComponent,
     PullRequestsCardComponent,
+    PullRequestDetailsComponent,
   ],
   imports: [
     BrowserModule,
@@ -43,6 +47,8 @@ import { PullRequestsCardComponent } from "./pages/dashboard/pull-requests-card/
     NgbTooltipModule,
     NgbCollapseModule,
     NgbDropdownModule,
+    NgbOffcanvasModule,
+    NgbProgressbarModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

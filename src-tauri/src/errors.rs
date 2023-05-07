@@ -23,4 +23,6 @@ pub enum GHDError {
     UnknownError,
     NotFoundError,
     DBVersionInTheFuture,
+    RepositoryNotFoundError,
+    PullRequestNotFoundError,
 }

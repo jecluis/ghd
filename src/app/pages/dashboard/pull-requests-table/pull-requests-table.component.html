@@ -16,7 +16,7 @@ limitations under the License.
 
 <table class="table" *ngIf="entries.length > 0">
   <tbody>
-    <tr *ngFor="let pr of entries">
+    <tr *ngFor="let pr of entries" (click)="openDetail(pr)">
       <td *ngIf="recents">
         <i class="mdi mdi-check-circle-outline text-primary" placement="top"
            ngbTooltip="Mark Viewed" container="body" (click)="markViewed(pr)"
@@ -45,9 +45,7 @@ limitations under the License.
       <td><ghd-pr-state [state]="pr.state"></ghd-pr-state></td>
       <td>#{{pr.number}}</td>
       <td>
-        <a [href]="pr.url" target="_blank">
-          {{pr.title}}
-        </a>
+        {{pr.title}}
       </td>
       <td>{{pr.lastUpdateObs|async}}</td>
       <td>

@@ -55,6 +55,8 @@ query UserInfo($login: String!) {
 fragment UserFragment on User {
   login
   databaseId
+  name
+  avatarUrl
 }
 
 query SearchIssues($q: String!) {
@@ -124,6 +126,67 @@ query SearchIssues($q: String!) {
               ...UserFragment
             }
           }
+        }
+      }
+    }
+  }
+}
+
+query GetPullRequestInfo($owner: String!, $repo: String!, $prid: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $prid) {
+      number
+      title
+      bodyHTML
+      author {
+        __typename
+        ...UserFragment
+      }
+      repository {
+        owner {
+          __typename
+          login
+        }
+        name
+      }
+      url
+      state
+      isDraft
+      milestone {
+        title
+        state
+        dueOn
+      }
+      labels(first: 100) {
+        nodes {
+          color
+          name
+        }
+      }
+      totalCommentsCount
+      comments(first: 100) {
+        nodes {
+          author {
+            __typename
+            ...UserFragment
+          }
+        }
+      }
+      reviews(first: 100) {
+        nodes {
+          author {
+            __typename
+            ...UserFragment
+          }
+          state
+        }
+      }
+      participants(first: 100) {
+        nodes {
+          login
+          name
+          avatarUrl
+          databaseId
         }
       }
     }

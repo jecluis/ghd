@@ -18,7 +18,8 @@
 )]
 
 use errors::GHDError;
-use log::{debug, error, info};
+use gh::types::PullRequestInfo;
+use log::{debug, error, info, warn};
 use tauri::Manager;
 
 mod bg;
@@ -215,6 +216,27 @@ async fn pr_get_list_by_involved(
 }
 
 #[tauri::command]
+async fn pr_get_info(
+    prid: i64,
+    mstate: tauri::State<'_, ManagedState>,
+) -> Result<PullRequestInfo, ()> {
+    let state = &mstate.state().await;
+    let db = &state.db;
+    let gh = &state.gh;
+
+    match gh.get_pull_request_info(&db, &prid).await {
+        Ok(res) => Ok(res),
+        Err(err) => {
+            warn!(
+                "Error obtaining pull request info, id: {}, err: {:?}",
+                prid, err
+            );
+            return Err(());
+        }
+    }
+}
+
+#[tauri::command]
 async fn archive_issue(
     issue_id: i64,
     mstate: tauri::State<'_, ManagedState>,
@@ -303,6 +325,7 @@ async fn main() {
             pr_mark_viewed_many,
             pr_get_list_by_author,
             pr_get_list_by_involved,
+            pr_get_info,
             archive_issue,
             archive_issue_many,
         ])

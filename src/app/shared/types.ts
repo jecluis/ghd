@@ -76,3 +76,45 @@ export type TrackedPRs = {
   viewed: PRTableEntry[];
   len: number;
 };
+
+/// Represents the information for a specific Pull Request.
+///
+export type PullRequestInfo = {
+  number: number;
+  title: string;
+  body_html: string;
+  author: GithubUser;
+  repo_owner: string;
+  repo_name: string;
+  url: string;
+  state: string;
+  is_draft: boolean;
+  milestone?: Milestone;
+  labels: Label[];
+  total_comments: number;
+  participants: GithubUser[];
+  reviews: UserReview[];
+};
+
+/// Represents a Milestone
+///
+export type Milestone = {
+  title: string;
+  state: string;
+  due_on?: string;
+  due_on_ts?: number;
+};
+
+/// Represents a Label
+///
+export type Label = {
+  color: string;
+  name: string;
+};
+
+/// Represents a Review from a User
+///
+export type UserReview = {
+  author: GithubUser;
+  state: string;
+};

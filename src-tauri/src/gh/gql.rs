@@ -18,20 +18,27 @@ mod queries;
 use graphql_client::GraphQLQuery;
 use queries::{user_info, UserInfo};
 
-use crate::errors::GHDError;
+use crate::{
+    errors::GHDError,
+    gh::types::{Label, UserReview},
+};
 
 use self::queries::{
+    get_pull_request_info::{
+        self, GetPullRequestInfoRepositoryPullRequestAuthor,
+    },
     search_issues::{
-        self, IssueState, PullRequestReviewDecision, PullRequestState,
-        SearchIssuesSearchNodes, SearchIssuesSearchNodesOnIssue,
-        SearchIssuesSearchNodesOnIssueAuthor,
+        self, IssueState, PullRequestReviewDecision, SearchIssuesSearchNodes,
+        SearchIssuesSearchNodesOnIssue, SearchIssuesSearchNodesOnIssueAuthor,
         SearchIssuesSearchNodesOnPullRequest,
         SearchIssuesSearchNodesOnPullRequestAuthor, UserFragment,
     },
-    SearchIssues,
+    GetPullRequestInfo, SearchIssues,
 };
 
-use super::types::{Issue, PullRequest, UserUpdate};
+use super::types::{
+    GithubUser, Issue, Milestone, PullRequest, PullRequestInfo, UserUpdate,
+};
 
 #[derive(serde::Deserialize, Debug)]
 struct GQLResData<T> {
@@ -202,6 +209,43 @@ impl GithubGQLRequest {
         let vars = search_issues::Variables { q: query.clone() };
         let response_data: search_issues::ResponseData = match self
             .execute::<SearchIssues, search_issues::ResponseData>(vars)
+            .await
+        {
+            Ok(res) => res,
+            Err(GHDError::UnknownError) => {
+                panic!("error: unknown error");
+            }
+            Err(err) => {
+                return Err(err);
+            }
+        };
+
+        Ok(response_data)
+    }
+
+    /// Obtain a given Pull Request's information.
+    ///
+    /// # Arguments
+    ///
+    /// * `repo_owner` - String containing the Pull Request's repository owner.
+    /// * `repo_name` - String containing the Pull Request's repository name.
+    /// * `pr_number` - The Pull Request's number.
+    ///
+    async fn get_pull_request_info(
+        self: &Self,
+        repo_owner: &String,
+        repo_name: &String,
+        pr_number: &i64,
+    ) -> Result<get_pull_request_info::ResponseData, GHDError> {
+        let vars = get_pull_request_info::Variables {
+            owner: repo_owner.clone(),
+            repo: repo_name.clone(),
+            prid: pr_number.clone(),
+        };
+        let response_data: get_pull_request_info::ResponseData = match self
+            .execute::<GetPullRequestInfo, get_pull_request_info::ResponseData>(
+                vars,
+            )
             .await
         {
             Ok(res) => res,
@@ -392,10 +436,10 @@ fn get_issue_from_pull_request(
         repo_name: node.repository.name.clone(),
         repo_owner: node.repository.owner.login.clone(),
         state: match &node.state {
-            PullRequestState::OPEN => String::from("open"),
-            PullRequestState::CLOSED => String::from("closed"),
-            PullRequestState::MERGED => String::from("merged"),
-            PullRequestState::Other(v) => v.clone(),
+            search_issues::PullRequestState::OPEN => String::from("open"),
+            search_issues::PullRequestState::CLOSED => String::from("closed"),
+            search_issues::PullRequestState::MERGED => String::from("merged"),
+            search_issues::PullRequestState::Other(v) => v.clone(),
         },
         created_at: node.created_at,
         updated_at: node.updated_at,
@@ -403,6 +447,171 @@ fn get_issue_from_pull_request(
         is_pull_request: true,
         last_viewed: None,
     }
+}
+
+/// Obtain a given Pull Request's information.
+///
+pub async fn get_pull_request_info(
+    token: &String,
+    repo_owner: &String,
+    repo_name: &String,
+    pr_number: &i64,
+) -> Result<PullRequestInfo, GHDError> {
+    // helper types
+    type PRInfoAuthor = GetPullRequestInfoRepositoryPullRequestAuthor;
+    type PRState = get_pull_request_info::PullRequestState;
+    type PRMilestoneState = get_pull_request_info::MilestoneState;
+    type ReviewAuthor = get_pull_request_info::GetPullRequestInfoRepositoryPullRequestReviewsNodesAuthor;
+    type ReviewState = get_pull_request_info::PullRequestReviewState;
+
+    let res = match GithubGQLRequest::new(&token)
+        .get_pull_request_info(&repo_owner, &repo_name, &pr_number)
+        .await
+    {
+        Ok(v) => v,
+        Err(err) => return Err(err),
+    };
+
+    let repo = match res.repository {
+        None => return Err(GHDError::RepositoryNotFoundError),
+        Some(v) => v,
+    };
+    let pr = match repo.pull_request {
+        None => return Err(GHDError::PullRequestNotFoundError),
+        Some(v) => v,
+    };
+
+    let unknown_user = GithubUser {
+        id: -1,
+        login: String::from("unknown"),
+        name: String::from("unknown"),
+        avatar_url: String::new(),
+    };
+
+    let author: GithubUser = match pr.author {
+        None => unknown_user.clone(),
+        Some(v) => match v {
+            PRInfoAuthor::User(user) => GithubUser {
+                id: user.database_id.unwrap_or(-1),
+                login: user.login,
+                name: user.name.unwrap_or(String::from("unknown")),
+                avatar_url: user.avatar_url,
+            },
+            _ => unknown_user.clone(),
+        },
+    };
+
+    let mut labels: Vec<Label> = vec![];
+    if let Some(l) = &pr.labels {
+        if let Some(lst) = &l.nodes {
+            for entry in lst {
+                if let Some(label) = &entry {
+                    labels.push(Label {
+                        name: label.name.clone(),
+                        color: label.color.clone(),
+                    });
+                }
+            }
+        }
+    }
+
+    let mut participants: Vec<GithubUser> = vec![];
+    if let Some(lst) = &pr.participants.nodes {
+        for entry in lst {
+            if let Some(user) = &entry {
+                participants.push(GithubUser {
+                    id: match &user.database_id {
+                        None => -1,
+                        Some(v) => *v,
+                    },
+                    login: user.login.clone(),
+                    name: match &user.name {
+                        None => String::from("unknown"),
+                        Some(v) => v.clone(),
+                    },
+                    avatar_url: user.avatar_url.clone(),
+                });
+            }
+        }
+    }
+
+    let mut reviews: Vec<UserReview> = vec![];
+    if let Some(r) = &pr.reviews {
+        if let Some(lst) = &r.nodes {
+            for entry in lst {
+                if let Some(rev) = &entry {
+                    reviews.push(UserReview {
+                        author: match &rev.author {
+                            None => unknown_user.clone(),
+                            Some(ReviewAuthor::User(u)) => GithubUser {
+                                id: u.database_id.unwrap_or(-1),
+                                login: u.login.clone(),
+                                name: match &u.name {
+                                    None => String::from("unknown"),
+                                    Some(v) => v.clone(),
+                                },
+                                avatar_url: u.avatar_url.clone(),
+                            },
+                            Some(_) => unknown_user.clone(),
+                        },
+                        state: match &rev.state {
+                            ReviewState::APPROVED => String::from("approved"),
+                            ReviewState::CHANGES_REQUESTED => {
+                                String::from("changes_requested")
+                            }
+                            ReviewState::COMMENTED => String::from("commented"),
+                            ReviewState::DISMISSED => String::from("dismissed"),
+                            ReviewState::PENDING => String::from("pending"),
+                            ReviewState::Other(v) => v.clone(),
+                        },
+                    });
+                }
+            }
+        }
+    }
+
+    Ok(PullRequestInfo {
+        number: pr.number,
+        title: pr.title,
+        body_html: pr.body_html,
+        author,
+        repo_owner: pr.repository.owner.login,
+        repo_name: pr.repository.name,
+        url: pr.url,
+        state: match &pr.state {
+            PRState::OPEN => String::from("open"),
+            PRState::CLOSED => String::from("closed"),
+            PRState::MERGED => String::from("merged"),
+            PRState::Other(v) => v.clone(),
+        },
+        is_draft: pr.is_draft,
+        milestone: match &pr.milestone {
+            None => None,
+            Some(m) => Some(Milestone {
+                title: m.title.clone(),
+                state: match &m.state {
+                    PRMilestoneState::OPEN => String::from("open"),
+                    PRMilestoneState::CLOSED => String::from("closed"),
+                    PRMilestoneState::Other(v) => v.clone(),
+                },
+                due_on: match &m.due_on {
+                    None => None,
+                    Some(d) => Some(*d),
+                },
+                due_on_ts: match &m.due_on {
+                    None => None,
+                    Some(d) => Some(d.timestamp()),
+                },
+            }),
+        },
+        labels,
+        total_comments: match &pr.total_comments_count {
+            None => 0,
+            Some(v) => *v,
+        },
+        participants,
+        reviews,
+    })
 }
 
 /// Obtain a user `login` and `id` from a given GraphQL `User Fragment`.

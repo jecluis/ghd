@@ -1,2 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
 @import "bootstrap/scss/bootstrap";
+
+.ghd-pr-details-offcanvas {
+    --bs-offcanvas-height: 50vh !important;
+}

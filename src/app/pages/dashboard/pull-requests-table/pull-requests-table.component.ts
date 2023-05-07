@@ -13,9 +13,11 @@
 // limitations under the License.
 
 import { Component, Input, OnInit } from "@angular/core";
+import { NgbOffcanvas, NgbOffcanvasRef } from "@ng-bootstrap/ng-bootstrap";
 import { TauriService } from "src/app/shared/services/tauri.service";
 import { UserPullRequestsService } from "src/app/shared/services/user-pull-requests.service";
 import { PRTableEntry } from "src/app/shared/types";
+import { PullRequestDetailsComponent } from "../pull-request-details/pull-request-details.component";
 
 @Component({
   selector: "ghd-pull-requests-table",
@@ -39,6 +41,7 @@ export class PullRequestsTableComponent implements OnInit {
   public constructor(
     private tauriSvc: TauriService,
     private prsSvc: UserPullRequestsService,
+    private offcanvas: NgbOffcanvas,
   ) {}
 
   public ngOnInit(): void {}
@@ -73,5 +76,16 @@ export class PullRequestsTableComponent implements OnInit {
       .catch((err) => {
         console.error(`unable to mark PR id ${pr.id} as archived: ${err}`);
       });
+  }
+
+  public openDetail(pr: PRTableEntry): void {
+    let ref: NgbOffcanvasRef = this.offcanvas.open(
+      PullRequestDetailsComponent,
+      {
+        position: "bottom",
+        panelClass: "ghd-pr-details-offcanvas",
+      },
+    );
+    ref.componentInstance.id = pr.id;
   }
 }

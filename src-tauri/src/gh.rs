@@ -17,7 +17,7 @@ use sqlx::Row;
 
 use crate::{db::DB, errors::GHDError};
 
-use self::types::{GithubUser, PullRequestTableEntry};
+use self::types::{GithubUser, PullRequestInfo, PullRequestTableEntry};
 
 pub mod api;
 pub mod gql;
@@ -468,6 +468,43 @@ impl Github {
         login: &String,
     ) -> Result<Vec<PullRequestTableEntry>, GHDError> {
         prs::get_involved_prs(&db, &login).await
+    }
+
+    /// Obtain a specific Pull Request's information.
+    ///
+    /// # Arguments
+    ///
+    /// * `db` - A GHD Database handle.
+    /// * `prid` - A Pull Request database ID.
+    ///
+    pub async fn get_pull_request_info(
+        self: &Self,
+        db: &DB,
+        prid: &i64,
+    ) -> Result<PullRequestInfo, GHDError> {
+        let entry = match prs::get_issue_by_id(&db, &prid).await {
+            Err(err) => return Err(err),
+            Ok(res) => res,
+        };
+
+        let token = match self.get_token(&db).await {
+            Ok(t) => t.clone(),
+            Err(err) => return Err(err),
+        };
+
+        let res = match gql::get_pull_request_info(
+            &token,
+            &entry.repo_owner,
+            &entry.repo_name,
+            &entry.number,
+        )
+        .await
+        {
+            Ok(r) => r,
+            Err(err) => return Err(err),
+        };
+
+        Ok(res)
     }
 
     /// Marks a specified Pull Request as having been viewed.
